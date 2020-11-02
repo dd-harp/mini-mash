@@ -2,7 +2,7 @@
 #
 #   aggregated malaria transmission model
 #   Sean L. Wu (slwu89@berkeley.edu)
-#   October 2020
+#   November 2020
 #
 -------------------------------------------------------------------------------- */
 
@@ -132,7 +132,7 @@ Rcpp::NumericMatrix pfsim_aggregated(
 
     if(verbose){
       if(i % 10000 == 0){
-        Rcpp::Rcout << " --- simulated " << i << " reactions at time " << tnow << " --- \n";
+        Rcpp::Rcout << " --- simulated " << i << " events with remaining time: " << (tmax - tnow) << " --- \n";
       }
     }
 
