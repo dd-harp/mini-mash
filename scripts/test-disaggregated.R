@@ -8,6 +8,7 @@ library(Rcpp)
 library(stocheulerABM)
 
 Rcpp::sourceCpp(here::here("r-src/disaggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/disaggregateddebug.cpp"))
 source(here::here("r-src/deterministic.R"))
 
 
@@ -25,18 +26,20 @@ mout <- data.table::melt(data = mout,id.vars="time")
 
 ggplot(data = mout) +
   geom_line(aes(x=time,y=value,color=variable)) +
+  geom_hline(yintercept = IC$y0[3:4],linetype=2,alpha=0.75) +
   theme_bw()
 
 mout[variable == "S", mean(value)]
 mout[variable == "I", mean(value)]
 
 
-hout <- test_humans(parameters = IC$parameters,SH = IC$y0[["SH"]],IH = IC$y0[["IH"]],IV = IC$y0[["IV"]],dt = 2,tmax = tmax)
+hout <- test_humans(parameters = IC$parameters,SH = IC$y0[["SH"]],IH = IC$y0[["IH"]],IV = IC$y0[["IV"]],dt = 5,tmax = tmax)
 hout <- as.data.table(stocheulerABM::discretise(out = hout,dt = 1))
 hout <- data.table::melt(data = hout,id.vars="time")
 
 ggplot(data = hout) +
   geom_line(aes(x=time,y=value,color=variable)) +
+  geom_hline(yintercept = IC$y0[1:2],linetype=2,alpha=0.75) +
   theme_bw()
 
 hout[variable == "S", mean(value)]

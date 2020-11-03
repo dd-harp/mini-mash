@@ -75,7 +75,6 @@ typedef struct mosypop_str {
   queue M_inf;
 
   // parameters
-  double a;
   double g;
   double EIP;
   double lambda;
@@ -114,7 +113,6 @@ mosypop_ptr make_mosypop(const Rcpp::NumericVector parameters, const int SV, con
   // mosypop->H2M_bites.push(infinity);
   mosypop->M_inf.push(infinity);
 
-  mosypop->a = parameters["a"];
   mosypop->g = parameters["g"];
   mosypop->lambda = parameters["lambda"];
   mosypop->EIP = parameters["EIP"];
@@ -144,8 +142,6 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
 
   double tmax{t0+dt};
   double P = exp(-mosypop->g*mosypop->EIP);
-
-  // Rcpp::Rcout << "getting bites from prev time step \n";
 
   // get bites from the previous time step
   while(!mosypop->H2M_bites.empty()){
@@ -258,7 +254,7 @@ typedef struct humanpop_str {
   double r;
   double LEP;
 
-  // elements for MNRM of internal mosy dynamics
+  // elements for MNRM of internal dynamics
   std::array<double,2> delta_t{infinity};
   double Pk{0.};
   double Tk{0.};
@@ -270,6 +266,8 @@ typedef struct humanpop_str {
   humanpop_str() : X_trace(queue_comp) {};
 
 } humanpop_str;
+
+
 
 // use this pointer
 using humanpop_ptr = std::unique_ptr<humanpop_str>;
@@ -302,6 +300,10 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
   return humanpop;
 };
 
+
+
+
+
 // iterate the humans
 void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
@@ -332,9 +334,11 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     humanpop->delta_t[1] = humanpop->H_inf.top() - humanpop->tnow;
 
     // find minimum
-    int mu{1};
+    int mu;
     if(humanpop->delta_t[0] < humanpop->delta_t[1]){
       mu = 0;
+    } else {
+      mu = 1;
     }
 
     // update putative time
