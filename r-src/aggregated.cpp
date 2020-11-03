@@ -35,7 +35,7 @@ enum states {
   IV = 3
 };
 
-const static double eps = 1.E-9;
+// const static double eps = 1.E-9;
 const static double infinity = std::numeric_limits<double>::infinity();
 
 
@@ -211,13 +211,6 @@ Rcpp::NumericMatrix pfsim_aggregated(
     SV_hist.push_back(X[states::SV]);
     IV_hist.push_back(X[states::IV]);
     i++;
-
-    // check break conditions
-    bool ak_zero = std::all_of(ak.begin(), ak.end(), [](double a){return a < eps;});
-    bool lag_inf = m_EIP.top() == infinity && h_LEP.top() == infinity;
-    if(ak_zero && lag_inf){
-      break;
-    }
 
   }
 
