@@ -2,6 +2,7 @@ rm(list=ls());gc()
 
 library(here)
 library(data.table)
+library(odin)
 library(ggplot2)
 library(deSolve)
 library(Rcpp)
@@ -17,9 +18,26 @@ IC <- calc_equilibrium(NH = NH,X = X)
 
 tmax <- 365*50
 
-dde_out <- dede(y = IC$y0,times = 0:tmax,func = derivs,parms = IC$parameters)
+dde_odin <- derivs_odin(
+  a = IC$parameters[["a"]],
+  b = IC$parameters[["b"]],
+  c = IC$parameters[["c"]],
+  EIP = IC$parameters[["EIP"]],
+  g = IC$parameters[["g"]],
+  lambda = IC$parameters[["lambda"]],
+  r = IC$parameters[["r"]],
+  LEP = IC$parameters[["LEP"]],
+  IH0 = IC$y0[["IH"]],
+  IV0 = IC$y0[["IV"]],
+  SH0 = IC$y0[["SH"]],
+  SV0 = IC$y0[["SV"]]
+)
+
+dde_out <- dde_odin$run(t = 0:tmax)
+# dde_out <- dede(y = IC$y0,times = 0:tmax,func = derivs,parms = IC$parameters)
 
 dde_out <- as.data.table(dde_out)
+data.table::setnames(x = dde_out,old = "t",new = "time")
 dde_out <- data.table::melt(dde_out,id.vars = "time",measure.vars = c("SH","IH","SV","IV"))
 dde_out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
 

@@ -85,3 +85,46 @@ derivs <- function(t,y,pars) {
     return(list(c(dSH,dIH,dSV,dIV)))
   })
 }
+
+derivs_odin <- odin::odin({
+
+  # lags
+  SH_lep <- delay(SH,LEP)
+  IH_lep <- delay(IH,LEP)
+  IV_lep <- delay(IV,LEP)
+
+  SH_eip <- delay(SH,EIP)
+  IH_eip <- delay(IH,EIP)
+  SV_eip <- delay(SV,EIP)
+
+  # prevalence in human population
+  X <- IH / (SH + IH)
+  X_lep <- IH_lep / (SH_lep + IH_lep)
+  X_eip <- IH_eip / (SH_eip + IH_eip)
+
+  deriv(SH) <- (r * IH) - (a * b * (1 - X) * IV)
+  deriv(IH) <- (a * b * IV_lep * (1 - X_lep)) - (r * IH)
+
+  deriv(SV) <- lambda - (a * c * X * SV) - (g * SV)
+  deriv(IV) <- (a * c * X_eip * SV_eip * exp(-g * EIP)) - (g * IV)
+
+  initial(SH) <- SH0
+  initial(IH) <- IH0
+  initial(SV) <- SV0
+  initial(IV) <- IV0
+
+  # parameters and initial conditions
+  SH0 <- user()
+  IH0 <- user()
+  SV0 <- user()
+  IV0 <- user()
+
+  g <- user()
+  b <- user()
+  a <- user()
+  c <- user()
+  r <- user()
+  EIP <- user()
+  LEP <- user()
+  lambda <- user()
+})
