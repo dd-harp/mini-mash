@@ -1,4 +1,5 @@
 rm(list=ls());gc()
+dev.off()
 
 library(here)
 library(data.table)

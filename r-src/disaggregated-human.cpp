@@ -58,7 +58,7 @@ typedef struct humanpop_str {
   // states
   int S;
   int I;
-  double N;
+  // double N;
 
   // history tracking
   std::vector<double> t_hist;
@@ -100,7 +100,7 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
 
   humanpop->S = SH;
   humanpop->I = IH;
-  humanpop->N = SH+IH;
+  // humanpop->N = SH+IH;
 
   humanpop->t_hist.reserve(outsize);
   humanpop->S_hist.reserve(outsize);
@@ -130,8 +130,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
   if(!humanpop->X_trace.empty()){
     Rcpp::stop("'X_trace' should always be empty at start of time step \n");
   }
-  // double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-  double X = static_cast<double>(humanpop->S) / (humanpop->N);
+  double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
+  // double X = static_cast<double>(humanpop->S) / (humanpop->N);
   humanpop->X_trace.push(queue_tuple(X,t0));
 
   double tmax{t0+dt};
@@ -163,8 +163,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     if(tsamp > tmax){
       double remaining = tmax - humanpop->tnow;
       humanpop->Tk += humanpop->ak * remaining;
-      // X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-      double X = static_cast<double>(humanpop->S) / (humanpop->N);
+      X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
+      // double X = static_cast<double>(humanpop->S) / (humanpop->N);
       humanpop->X_trace.push(queue_tuple(X,tmax));
       humanpop->tnow = tmax;
       break;
@@ -183,8 +183,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
       Rcpp::stop(msg);
     }
 
-    // X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-    double X = static_cast<double>(humanpop->S) / (humanpop->N);
+    X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
+    // double X = static_cast<double>(humanpop->S) / (humanpop->N);
     humanpop->X_trace.push(queue_tuple(X,humanpop->tnow));
 
     // update Tk
@@ -257,8 +257,8 @@ Rcpp::NumericMatrix test_humans(const Rcpp::NumericVector parameters, const int 
       double X = std::get<0>(t0_block);
 
       // intensity for this piecewise block
-      // double intensity = a * b * (1. - X) * IV * dt;
-      double intensity = a * b * X * IV * dt;
+      double intensity = a * b * (1. - X) * IV * dt;
+      // double intensity = a * b * X * IV * dt;
       int bites = R::rpois(intensity);
 
       // add the bites to the human for next time

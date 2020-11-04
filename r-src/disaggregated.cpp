@@ -476,14 +476,18 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 
     // add the bites to the mosquito for next time
     if(H2M_bites > 0){
-      double btime = R::runif(t0,t1);
-      mosypop->H2M_bites.push(btime);
+      for(int k=0; k<H2M_bites; k++){
+        double btime = R::runif(t0,t1);
+        mosypop->H2M_bites.push(btime);
+      }
     }
 
     // add the bites to the human for next time
     if(M2H_bites > 0){
-      double btime = R::runif(t0,t1);
-      humanpop->M2H_bites.push(btime);
+      for(int k=0; k<M2H_bites; k++){
+        double btime = R::runif(t0,t1);
+        humanpop->M2H_bites.push(btime);
+      }
     }
 
     // state change that happened first becomes new starting point
@@ -506,159 +510,63 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 };
 
 
-
-
-
-
-
-
-
-
-
 /* --------------------------------------------------------------------------------
 #   run (main)
 -------------------------------------------------------------------------------- */
 
 // [[Rcpp::export]]
-Rcpp::NumericMatrix test_mosquitoes(const Rcpp::NumericVector parameters, const double X, const int SV, const int IV, const double dt, const double tmax){
+Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::IntegerVector y0, const double dt, const double tmax){
+
+  int SH = y0[0];
+  int IH = y0[1];
+  int SV = y0[2];
+  int IV = y0[3];
 
   const int outsize = 1E5;
   mosypop_ptr mosypop = make_mosypop(parameters,SV,IV,outsize);
-
-  // some parameters
-  double a = parameters["a"];
-  double c = parameters["c"];
-
-  // 1st iteration
-  double clock{0.0};
-
-  // subsequent iteration
-  while(clock < tmax){
-
-    // iterate the mosquitoes
-    run_mosypop(mosypop, clock, dt);
-
-    // compute bloodmeal times (the BLOODMEAL MODULE)
-
-    // start of this piecewise trajectory
-    queue_tuple t0_block = mosypop->Sv_trace.top();
-    mosypop->Sv_trace.pop();
-    // end of this piecewise trajectory
-    queue_tuple t1_block;
-    // iterate over parts
-    // double ddt{0.};
-    while(!mosypop->Sv_trace.empty()){
-      // grab the end
-      t1_block = mosypop->Sv_trace.top();
-      mosypop->Sv_trace.pop();
-
-      // dt: length of trajectory, S: the susceptible mosy over this traj
-      double t1 = std::get<1>(t1_block);
-      double t0 = std::get<1>(t0_block);
-      double dt = t1 - t0;
-      double S = std::get<0>(t0_block);
-
-      // intensity for this piecewise block
-      double intensity = a * c * X * S * dt;
-      int bites = R::rpois(intensity);
-
-      // add the bites to the mosquito for next time
-      if(bites > 0){
-        double btime = R::runif(t0,t1);
-        mosypop->H2M_bites.push(btime);
-      }
-
-      // set endpoint to startpoint for next iteration
-      t0_block = t1_block;
-    }
-    // Rcpp::Rcout << "done queueing bites, total dt accumluated: " << ddt << " \n";
-
-    // clear out unused trace
-    while(!mosypop->Iv_trace.empty()){
-      mosypop->Iv_trace.pop();
-    }
-
-    // increment tmax before next iteration
-    clock += dt;
-  }
-
-  int k = mosypop->t_hist.size();
-  Rcpp::NumericMatrix out(k,3);
-  Rcpp::colnames(out) = Rcpp::CharacterVector::create("time","S","I");
-  for(int j=0; j<k; j++){
-    out(j,0) = mosypop->t_hist[j];
-    out(j,1) = mosypop->S_hist[j];
-    out(j,2) = mosypop->I_hist[j];
-  }
-  return out;
-};
-
-
-// [[Rcpp::export]]
-Rcpp::NumericMatrix test_humans(const Rcpp::NumericVector parameters, const int SH, const int IH, const double IV, const double dt, const double tmax){
-
-  const int outsize = 1E5;
   humanpop_ptr humanpop = make_humanpop(parameters,SH,IH,outsize);
 
-  // some parameters
-  double a = parameters["a"];
-  double b = parameters["b"];
-
-  // 1st iteration
+  int tsteps = tmax/dt;
+  int i{0};
   double clock{0.0};
 
-  // subsequent iteration
+  Rcpp::Rcout << "--- begin simulation ---\n";
   while(clock < tmax){
 
-    // iterate the mosquitoes
+    run_mosypop(mosypop, clock, dt);
     run_humanpop(humanpop, clock, dt);
 
-    // compute bloodmeal times (the BLOODMEAL MODULE)
+    bloodmeal(parameters,humanpop,mosypop);
 
-    // start of this piecewise trajectory
-    queue_tuple t0_block = humanpop->X_trace.top();
-    humanpop->X_trace.pop();
-    // end of this piecewise trajectory
-    queue_tuple t1_block;
-    // iterate over parts
-    // double ddt{0.};
-    while(!humanpop->X_trace.empty()){
-      // grab the end
-      t1_block = humanpop->X_trace.top();
-      humanpop->X_trace.pop();
-
-      // dt: length of trajectory, S: the susceptible mosy over this traj
-      double t1 = std::get<1>(t1_block);
-      double t0 = std::get<1>(t0_block);
-      double dt = t1 - t0;
-      double X = std::get<0>(t0_block);
-      // Rcpp::Rcout <<"X: " << X << "---\n";
-
-      // intensity for this piecewise block
-      double intensity = a * b * (1. - X) * IV * dt;
-      int bites = R::rpois(intensity);
-
-      // add the bites to the mosquito for next time
-      if(bites > 0){
-        double btime = R::runif(t0,t1);
-        humanpop->M2H_bites.push(btime);
-      }
-
-      // set endpoint to startpoint for next iteration
-      t0_block = t1_block;
+    i++;
+    if(i % 10 == 0){
+      Rcpp::Rcout << " completed TWICE step " << i << " of " << tsteps << "\n";
     }
-
-    // increment tmax before next iteration
     clock += dt;
   }
+  Rcpp::Rcout << "--- ending simulation ---\n";
 
-  int k = humanpop->t_hist.size();
-  Rcpp::NumericMatrix out(k,3);
-  Rcpp::colnames(out) = Rcpp::CharacterVector::create("time","S","I");
-  for(int j=0; j<k; j++){
-    out(j,0) = humanpop->t_hist[j];
-    out(j,1) = humanpop->S_hist[j];
-    out(j,2) = humanpop->I_hist[j];
+
+  int kh = humanpop->t_hist.size();
+  Rcpp::NumericMatrix outh(kh,3);
+  Rcpp::colnames(outh) = Rcpp::CharacterVector::create("time","S","I");
+  for(int j=0; j<kh; j++){
+    outh(j,0) = humanpop->t_hist[j];
+    outh(j,1) = humanpop->S_hist[j];
+    outh(j,2) = humanpop->I_hist[j];
   }
-  return out;
-};
+
+  int km = mosypop->t_hist.size();
+  Rcpp::NumericMatrix outm(km,3);
+  Rcpp::colnames(outm) = Rcpp::CharacterVector::create("time","S","I");
+  for(int j=0; j<km; j++){
+    outm(j,0) = mosypop->t_hist[j];
+    outm(j,1) = mosypop->S_hist[j];
+    outm(j,2) = mosypop->I_hist[j];
+  }
+
+  return Rcpp::List::create(
+    Rcpp::Named("mosquito") = outm,
+    Rcpp::Named("human") = outh
+  );
+}

@@ -16,7 +16,7 @@ X <- 0.3
 
 IC <- calc_equilibrium(NH = NH,X = X)
 
-tmax <- 365*50
+tmax <- 365*100
 
 dde_odin <- derivs_odin(
   a = IC$parameters[["a"]],
@@ -63,3 +63,28 @@ ggplot(data = out) +
   facet_wrap(. ~ species,scales = "free_y") +
   theme_bw()
 
+
+Rcpp::sourceCpp(here::here("r-src/disaggregated.cpp"))
+
+full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
+out_m <- full_out$mosquito
+out_h <- full_out$human
+
+out_m <- data.table::as.data.table(stocheulerABM::discretise(out = out_m,dt = 1))
+out_m <- data.table::melt(out_m,id.vars="time")
+out_m[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+out_m[, ("species") := "Mosquito"]
+
+out_h <- data.table::as.data.table(stocheulerABM::discretise(out = out_h,dt = 1))
+out_h <- data.table::melt(out_h,id.vars="time")
+out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+out_h[, ("species") := "Human"]
+
+dde_out[, ("variable") := substr(variable,1,1)]
+
+ggplot(data = rbind(out_h,out_m)) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.75) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.75,data=dde_out,linetype=2) +
+  geom_line(aes(x=time,y=mean,color=variable)) +
+  facet_wrap(. ~ species,scales = "free_y") +
+  theme_bw()
