@@ -1,4 +1,5 @@
 rm(list=ls());gc()
+dev.off()
 
 library(here)
 library(data.table)
@@ -57,18 +58,23 @@ out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
 
 ggplot(data = out) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.75) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.75,data=dde_out,linetype=2) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
   geom_line(aes(x=time,y=mean,color=variable)) +
   facet_wrap(. ~ species,scales = "free_y") +
+  ggtitle("Gillespie simulation vs. DDE") +
   theme_bw()
 
+ggsave(filename = here::here("figs/gillespie_dde.pdf"),device = "pdf",width = 14,height = 8)
 
 Rcpp::sourceCpp(here::here("r-src/disaggregated.cpp"))
 
 full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
+
 out_m <- full_out$mosquito
+colnames(out_m) <- c("time","SV","IV")
 out_h <- full_out$human
+colnames(out_h) <- c("time","SH","IH")
 
 out_m <- data.table::as.data.table(stocheulerABM::discretise(out = out_m,dt = 1))
 out_m <- data.table::melt(out_m,id.vars="time")
@@ -80,11 +86,12 @@ out_h <- data.table::melt(out_h,id.vars="time")
 out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out_h[, ("species") := "Human"]
 
-dde_out[, ("variable") := substr(variable,1,1)]
-
 ggplot(data = rbind(out_h,out_m)) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.75) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.75,data=dde_out,linetype=2) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
   geom_line(aes(x=time,y=mean,color=variable)) +
   facet_wrap(. ~ species,scales = "free_y") +
+  ggtitle("MASH vs. DDE") +
   theme_bw()
+
+ggsave(filename = here::here("figs/MASH_dde.pdf"),device = "pdf",width = 14,height = 8)
