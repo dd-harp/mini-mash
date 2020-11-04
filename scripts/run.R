@@ -67,7 +67,7 @@ ggplot(data = out) +
 
 ggsave(filename = here::here("figs/gillespie_dde.pdf"),device = "pdf",width = 14,height = 8)
 
-Rcpp::sourceCpp(here::here("r-src/disaggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/disaggregated.cpp"),rebuild = TRUE)
 
 full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
 
