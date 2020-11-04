@@ -496,7 +496,6 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 
     // last end time becomes next beginning time
     t0 = t1;
-
   }
 
 };
