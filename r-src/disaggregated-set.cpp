@@ -15,6 +15,7 @@
 #include <tuple>
 #include <set>
 #include <memory>
+#include <algorithm>
 // #include <queue>
 
 #include <Rcpp.h>
@@ -387,6 +388,119 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 #   bloodmeal
 -------------------------------------------------------------------------------- */
 
+// void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mosypop_ptr& mosypop){
+//
+//   double a = parameters["a"];
+//   double c = parameters["c"];
+//   double b = parameters["b"];
+//
+//   // H2M bites occur with intensity (acX)S_{V}
+//   // M2H bites occur with intensity ab(1-X)I_{V}
+//   double H2M_intensity, M2H_intensity;
+//   int H2M_bites, M2H_bites;
+//
+//   // length of intervals
+//   double t1,t0,dt;
+//   double S,I,X;
+//
+//   // next state change
+//   std::array<double,3> t1_array{0.};
+//
+//   // beginning of piecewise trajectories
+//   queue_tuple t0_SV = *mosypop->Sv_trace.begin();
+//   queue_tuple t0_IV = *mosypop->Iv_trace.begin();
+//   queue_tuple t0_X = *humanpop->X_trace.begin();
+//
+//   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
+//   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
+//   humanpop->X_trace.erase(humanpop->X_trace.begin());
+//
+//   t0 = std::get<1>(t0_SV);
+//
+//   // end of the piecewise trajectories
+//   queue_tuple t1_SV;
+//   queue_tuple t1_IV;
+//   queue_tuple t1_X;
+//
+//   // compute over the TWICE step
+//   while(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty() || !humanpop->X_trace.empty()){
+//
+//     H2M_intensity = 0.;
+//     M2H_intensity = 0.;
+//
+//     // if not empty, get the next state change in each trajectory
+//     std::fill(t1_array.begin(),t1_array.end(),infinity);
+//     if(!mosypop->Sv_trace.empty()){
+//       t1_SV = *mosypop->Sv_trace.begin();
+//       mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
+//       t1_array[0] = std::get<1>(t1_SV);
+//     }
+//     if(!mosypop->Iv_trace.empty()){
+//       t1_IV = *mosypop->Iv_trace.begin();
+//       mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
+//       t1_array[1] = std::get<1>(t1_IV);
+//     }
+//     if(!humanpop->X_trace.empty()){
+//       t1_X = *humanpop->X_trace.begin();
+//       humanpop->X_trace.erase(humanpop->X_trace.begin());
+//       t1_array[2] = std::get<1>(t1_X);
+//     }
+//
+//     // find which trajectory changes next
+//     auto min_elem = std::min_element(t1_array.begin(), t1_array.end());
+//     int mu = std::distance(t1_array.begin(), min_elem);
+//
+//     // compute length of this piecewise interval [t0,d1)
+//     t1 = t1_array[mu];
+//     dt = t1 - t0;
+//
+//     // state values at t0
+//     S = std::get<0>(t0_SV);
+//     I = std::get<0>(t0_IV);
+//     X = std::get<0>(t0_X);
+//
+//     // intensity over the interval
+//     H2M_intensity = a * c * X * S * dt;
+//     M2H_intensity = a * b * (1. - X) * I * dt;
+//
+//     // sample values
+//     H2M_bites = R::rpois(H2M_intensity);
+//     M2H_bites = R::rpois(M2H_intensity);
+//
+//     // add the bites to the mosquito for next time
+//     if(H2M_bites > 0){
+//       for(int k=0; k<H2M_bites; k++){
+//         double btime = R::runif(t0,t1);
+//         mosypop->H2M_bites.emplace(btime);
+//       }
+//     }
+//
+//     // add the bites to the human for next time
+//     if(M2H_bites > 0){
+//       for(int k=0; k<M2H_bites; k++){
+//         double btime = R::runif(t0,t1);
+//         humanpop->M2H_bites.emplace(btime);
+//       }
+//     }
+//
+//     // state change that happened first becomes new starting point
+//     if(mu==0){
+//       t0_SV = t1_SV;
+//     } else if(mu==1){
+//       t0_IV = t1_IV;
+//     } else if(mu==2){
+//       t0_X = t1_X;
+//     } else{
+//       std::string msg("invalid minimum element in 'bloodmeal': " + std::to_string(mu));
+//       Rcpp::stop(msg);
+//     }
+//
+//     // last end time becomes next beginning time
+//     t0 = t1;
+//   }
+//
+// };
+
 void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mosypop_ptr& mosypop){
 
   double a = parameters["a"];
@@ -417,33 +531,23 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   t0 = std::get<1>(t0_SV);
 
   // end of the piecewise trajectories
-  queue_tuple t1_SV;
-  queue_tuple t1_IV;
-  queue_tuple t1_X;
+  queue_tuple t1_SV = *mosypop->Sv_trace.begin();
+  queue_tuple t1_IV = *mosypop->Iv_trace.begin();
+  queue_tuple t1_X = *humanpop->X_trace.begin();
+
+  mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
+  mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
+  humanpop->X_trace.erase(humanpop->X_trace.begin());
+
+  t1_array[0] = std::get<1>(t1_SV);
+  t1_array[1] = std::get<1>(t1_IV);
+  t1_array[2] = std::get<1>(t1_X);
 
   // compute over the TWICE step
-  while(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty() || !humanpop->X_trace.empty()){
+  while( std::all_of(t1_array.begin(), t1_array.end(), [](const double y){return y < infinity;}) ){
 
     H2M_intensity = 0.;
     M2H_intensity = 0.;
-
-    // if not empty, get the next state change in each trajectory
-    std::fill(t1_array.begin(),t1_array.end(),infinity);
-    if(!mosypop->Sv_trace.empty()){
-      t1_SV = *mosypop->Sv_trace.begin();
-      mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
-      t1_array[0] = std::get<1>(t1_SV);
-    }
-    if(!mosypop->Iv_trace.empty()){
-      t1_IV = *mosypop->Iv_trace.begin();
-      mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
-      t1_array[1] = std::get<1>(t1_IV);
-    }
-    if(!humanpop->X_trace.empty()){
-      t1_X = *humanpop->X_trace.begin();
-      humanpop->X_trace.erase(humanpop->X_trace.begin());
-      t1_array[2] = std::get<1>(t1_X);
-    }
 
     // find which trajectory changes next
     auto min_elem = std::min_element(t1_array.begin(), t1_array.end());
@@ -485,11 +589,32 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
     // state change that happened first becomes new starting point
     if(mu==0){
       t0_SV = t1_SV;
+      if(!mosypop->Sv_trace.empty()){
+        t1_SV = *mosypop->Sv_trace.begin();
+        mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
+        t1_array[0] = std::get<1>(t1_SV);
+      } else {
+        t1_array[0] = infinity;
+      }
     } else if(mu==1){
       t0_IV = t1_IV;
+      if(!mosypop->Iv_trace.empty()){
+        t1_IV = *mosypop->Iv_trace.begin();
+        mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
+        t1_array[1] = std::get<1>(t1_IV);
+      } else {
+        t1_array[1] = infinity;
+      }
     } else if(mu==2){
       t0_X = t1_X;
-    } else{
+      if(!humanpop->X_trace.empty()){
+        t1_X = *humanpop->X_trace.begin();
+        humanpop->X_trace.erase(humanpop->X_trace.begin());
+        t1_array[2] = std::get<1>(t1_X);
+      } else {
+        t1_array[2] = infinity;
+      }
+    } else {
       std::string msg("invalid minimum element in 'bloodmeal': " + std::to_string(mu));
       Rcpp::stop(msg);
     }
