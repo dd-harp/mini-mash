@@ -39,52 +39,52 @@ calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP
   )
 }
 
-# for deSolve::dede
-derivs <- function(t,y,pars) {
-
-  with(as.list(pars),{
-    SH <- y[1]
-    IH <- y[2]
-    SV <- y[3]
-    IV <- y[4]
-
-    if(t <= EIP){
-      SV_eip <- SV0
-
-      SH_eip <- SH0
-      IH_eip <- IH0
-    } else {
-      SV_eip <- lagvalue(t - EIP,3)
-
-      SH_eip <- lagvalue(t - EIP,1)
-      IH_eip <- lagvalue(t - EIP,2)
-    }
-
-    if(t <= LEP){
-      SH_lep <- SH0
-      IH_lep <- IH0
-
-      IV_lep <- IV0
-    } else {
-      SH_lep <- lagvalue(t - LEP,1)
-      IH_lep <- lagvalue(t - LEP,2)
-
-      IV_lep <- lagvalue(t - LEP,4)
-    }
-
-    X_lep <- IH_lep / (SH_lep + IH_lep)
-    X_eip <- IH_eip / (SH_eip + IH_eip)
-    X <- IH / (SH + IH)
-
-    dSH <- (r * IH) - (a * b * (1 - X) * IV)
-    dIH <- (a * b * IV_lep * (1 - X_lep)) - (r * IH)
-
-    dSV <- lambda - (a * c * X * SV) - (g * SV)
-    dIV <- (a * c * X_eip * SV_eip * exp(-g * EIP)) - (g * IV)
-
-    return(list(c(dSH,dIH,dSV,dIV)))
-  })
-}
+# # for deSolve::dede
+# derivs <- function(t,y,pars) {
+#
+#   with(as.list(pars),{
+#     SH <- y[1]
+#     IH <- y[2]
+#     SV <- y[3]
+#     IV <- y[4]
+#
+#     if(t <= EIP){
+#       SV_eip <- SV0
+#
+#       SH_eip <- SH0
+#       IH_eip <- IH0
+#     } else {
+#       SV_eip <- lagvalue(t - EIP,3)
+#
+#       SH_eip <- lagvalue(t - EIP,1)
+#       IH_eip <- lagvalue(t - EIP,2)
+#     }
+#
+#     if(t <= LEP){
+#       SH_lep <- SH0
+#       IH_lep <- IH0
+#
+#       IV_lep <- IV0
+#     } else {
+#       SH_lep <- lagvalue(t - LEP,1)
+#       IH_lep <- lagvalue(t - LEP,2)
+#
+#       IV_lep <- lagvalue(t - LEP,4)
+#     }
+#
+#     X_lep <- IH_lep / (SH_lep + IH_lep)
+#     X_eip <- IH_eip / (SH_eip + IH_eip)
+#     X <- IH / (SH + IH)
+#
+#     dSH <- (r * IH) - (a * b * (1 - X) * IV)
+#     dIH <- (a * b * IV_lep * (1 - X_lep)) - (r * IH)
+#
+#     dSV <- lambda - (a * c * X * SV) - (g * SV)
+#     dIV <- (a * c * X_eip * SV_eip * exp(-g * EIP)) - (g * IV)
+#
+#     return(list(c(dSH,dIH,dSV,dIV)))
+#   })
+# }
 
 derivs_odin <- odin::odin({
 

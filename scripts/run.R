@@ -57,7 +57,7 @@ out <- data.table::melt(out,id.vars = "time",measure.vars = c("SH","IH","SV","IV
 out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
 
-ggplot(data = out) +
+plot_agg <- ggplot(data = out) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
   geom_line(aes(x=time,y=mean,color=variable)) +
@@ -65,7 +65,7 @@ ggplot(data = out) +
   ggtitle("Gillespie simulation vs. DDE") +
   theme_bw()
 
-ggsave(filename = here::here("figs/gillespie_dde.pdf"),device = "pdf",width = 14,height = 8)
+# ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde.pdf"),device = "pdf",width = 14,height = 8)
 
 Rcpp::sourceCpp(here::here("r-src/disaggregated-set.cpp"),rebuild = TRUE)
 
@@ -86,7 +86,7 @@ out_h <- data.table::melt(out_h,id.vars="time")
 out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out_h[, ("species") := "Human"]
 
-ggplot(data = rbind(out_h,out_m)) +
+plot_disagg <- ggplot(data = rbind(out_h,out_m)) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
   geom_line(aes(x=time,y=mean,color=variable)) +
@@ -94,4 +94,4 @@ ggplot(data = rbind(out_h,out_m)) +
   ggtitle("MASH vs. DDE") +
   theme_bw()
 
-ggsave(filename = here::here("figs/MASH_dde.pdf"),device = "pdf",width = 14,height = 8)
+# ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde.pdf"),device = "pdf",width = 14,height = 8)
