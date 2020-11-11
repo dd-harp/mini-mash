@@ -7,9 +7,9 @@ library(odin)
 library(ggplot2)
 library(deSolve)
 library(Rcpp)
-library(stocheulerABM)
 
 Rcpp::sourceCpp(here::here("r-src/aggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
 source(here::here("r-src/deterministic.R"))
 
 NH <- 1e3
@@ -52,7 +52,7 @@ out <- pfsim_aggregated(
   verbose = T
 )
 
-out <- data.table::as.data.table(stocheulerABM::discretise(out = out,dt = 1))
+out <- data.table::as.data.table(discretise(out = out,dt = 1))
 out <- data.table::melt(out,id.vars = "time",measure.vars = c("SH","IH","SV","IV"))
 out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
@@ -65,7 +65,7 @@ plot_agg <- ggplot(data = out) +
   ggtitle("Gillespie simulation vs. DDE") +
   theme_bw()
 
-# ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde.pdf"),device = "pdf",width = 14,height = 8)
+ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde.tiff"),device = "tiff",width = 14,height = 8)
 
 Rcpp::sourceCpp(here::here("r-src/disaggregated-set.cpp"),rebuild = TRUE)
 
@@ -76,12 +76,12 @@ colnames(out_m) <- c("time","SV","IV")
 out_h <- full_out$human
 colnames(out_h) <- c("time","SH","IH")
 
-out_m <- data.table::as.data.table(stocheulerABM::discretise(out = out_m,dt = 1))
+out_m <- data.table::as.data.table(discretise(out = out_m,dt = 1))
 out_m <- data.table::melt(out_m,id.vars="time")
 out_m[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out_m[, ("species") := "Mosquito"]
 
-out_h <- data.table::as.data.table(stocheulerABM::discretise(out = out_h,dt = 1))
+out_h <- data.table::as.data.table(discretise(out = out_h,dt = 1))
 out_h <- data.table::melt(out_h,id.vars="time")
 out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out_h[, ("species") := "Human"]
@@ -94,4 +94,4 @@ plot_disagg <- ggplot(data = rbind(out_h,out_m)) +
   ggtitle("MASH vs. DDE") +
   theme_bw()
 
-# ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde.pdf"),device = "pdf",width = 14,height = 8)
+ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde.tiff"),device = "tiff",width = 14,height = 8)
