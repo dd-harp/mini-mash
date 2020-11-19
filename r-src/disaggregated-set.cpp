@@ -83,7 +83,8 @@ typedef struct mosypop_str {
   queue_trace Sv_trace;
   queue_trace Iv_trace;
 
-  // mosypop_str() : Sv_trace(queue_comp), Iv_trace(queue_comp) {};
+  mosypop_str(){Rcpp::Rcout << "'mosypop_str' ctor called at " << this << std::endl;};
+  ~mosypop_str(){Rcpp::Rcout << "'mosypop_str' dtor called at " << this << std::endl;};
 
 } mosypop_str;
 
@@ -256,7 +257,8 @@ typedef struct humanpop_str {
   // integrated prevalence over [t0,t0+dt)
   queue_trace X_trace;
 
-  // humanpop_str() : X_trace(queue_comp) {};
+  humanpop_str(){Rcpp::Rcout << "'humanpop_str' ctor called at " << this << std::endl;};
+  ~humanpop_str(){Rcpp::Rcout << "'humanpop_str' dtor called at " << this << std::endl;};
 
 } humanpop_str;
 
