@@ -35,7 +35,6 @@ dde_odin <- derivs_odin(
 )
 
 dde_out <- dde_odin$run(t = 0:tmax)
-# dde_out <- dede(y = IC$y0,times = 0:tmax,func = derivs,parms = IC$parameters)
 
 dde_out <- as.data.table(dde_out)
 data.table::setnames(x = dde_out,old = "t",new = "time")

@@ -97,6 +97,7 @@ using mosypop_ptr = std::unique_ptr<mosypop_str>;
 
 // make the mosquitoes
 mosypop_ptr make_mosypop(const Rcpp::NumericVector parameters, const int SV, const int IV, const int outsize){
+
   mosypop_ptr mosypop = std::make_unique<mosypop_str>();
 
   mosypop->S = SV;
@@ -130,6 +131,11 @@ mosypop_ptr make_mosypop(const Rcpp::NumericVector parameters, const int SV, con
   return mosypop;
 };
 
+
+/* --------------------------------------------------------------------------------
+#   Simulate the mosquitoes over a TWICE step
+-------------------------------------------------------------------------------- */
+
 // iterate the mosquitoes
 void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
 
@@ -151,6 +157,10 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
     mosypop->M_inf.emplace(*mosypop->H2M_bites.begin() + mosypop->EIP);
     mosypop->H2M_bites.erase(mosypop->H2M_bites.begin());
   }
+
+  // FOUND THE BUG!!!!
+  // WE'RE NOT ACCUMULATING THE HAZARD FROM E->DIE FROM LAST STEP UNTIL t0!!!!
+  // FIX THIS!!!
 
   // simulate dynamics over this time step
   while(mosypop->tnow < tmax){
@@ -248,12 +258,13 @@ typedef struct humanpop_str {
 
   // states
   int S;
+  int E;
   int I;
-  // double N;
 
   // history tracking
   std::vector<double> t_hist;
   std::vector<double> S_hist;
+  std::vector<double> E_hist;
   std::vector<double> I_hist;
 
   double tnow;
@@ -283,7 +294,6 @@ typedef struct humanpop_str {
 } humanpop_str;
 
 
-
 // use this pointer
 using humanpop_ptr = std::unique_ptr<humanpop_str>;
 
@@ -292,11 +302,12 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
   humanpop_ptr humanpop = std::make_unique<humanpop_str>();
 
   humanpop->S = SH;
+  humanpop->E = 0;
   humanpop->I = IH;
-  // humanpop->N = SH+IH;
 
   humanpop->t_hist.reserve(outsize);
   humanpop->S_hist.reserve(outsize);
+  humanpop->E_hist.reserve(outsize);
   humanpop->I_hist.reserve(outsize);
 
   humanpop->tnow = 0.0;
@@ -316,8 +327,9 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
 };
 
 
-
-
+/* --------------------------------------------------------------------------------
+#   simulate the humans over a TWICE step
+-------------------------------------------------------------------------------- */
 
 // iterate the humans
 void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
@@ -336,6 +348,7 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
   while(!humanpop->M2H_bites.empty()){
     // take out one S person (they move to E)
     humanpop->S -= 1;
+    humanpop->E += 1;
     // push the future infection
     humanpop->H_inf.emplace(*humanpop->M2H_bites.begin() + humanpop->LEP);
     humanpop->M2H_bites.erase(humanpop->M2H_bites.begin());
@@ -371,12 +384,15 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     humanpop->tnow = tsamp;
 
     // update system
+    // S->I recovery
     if(mu == 0){
       humanpop->I -= 1;
       humanpop->S += 1;
+    // E->I
     } else if(mu == 1){
-      humanpop->H_inf.erase(humanpop->H_inf.begin());
+      humanpop->E -= 1;
       humanpop->I += 1;
+      humanpop->H_inf.erase(humanpop->H_inf.begin());
     } else {
       std::string msg("invalid minimum element in 'run_mosypop': " + std::to_string(mu));
       Rcpp::stop(msg);
@@ -399,6 +415,7 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     // track output
     humanpop->t_hist.push_back(humanpop->tnow);
     humanpop->S_hist.push_back(humanpop->S);
+    humanpop->E_hist.push_back(humanpop->E);
     humanpop->I_hist.push_back(humanpop->I);
 
   }
@@ -409,119 +426,6 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 /* --------------------------------------------------------------------------------
 #   bloodmeal
 -------------------------------------------------------------------------------- */
-
-// void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mosypop_ptr& mosypop){
-//
-//   double a = parameters["a"];
-//   double c = parameters["c"];
-//   double b = parameters["b"];
-//
-//   // H2M bites occur with intensity (acX)S_{V}
-//   // M2H bites occur with intensity ab(1-X)I_{V}
-//   double H2M_intensity, M2H_intensity;
-//   int H2M_bites, M2H_bites;
-//
-//   // length of intervals
-//   double t1,t0,dt;
-//   double S,I,X;
-//
-//   // next state change
-//   std::array<double,3> t1_array{0.};
-//
-//   // beginning of piecewise trajectories
-//   queue_tuple t0_SV = *mosypop->Sv_trace.begin();
-//   queue_tuple t0_IV = *mosypop->Iv_trace.begin();
-//   queue_tuple t0_X = *humanpop->X_trace.begin();
-//
-//   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
-//   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
-//   humanpop->X_trace.erase(humanpop->X_trace.begin());
-//
-//   t0 = std::get<1>(t0_SV);
-//
-//   // end of the piecewise trajectories
-//   queue_tuple t1_SV;
-//   queue_tuple t1_IV;
-//   queue_tuple t1_X;
-//
-//   // compute over the TWICE step
-//   while(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty() || !humanpop->X_trace.empty()){
-//
-//     H2M_intensity = 0.;
-//     M2H_intensity = 0.;
-//
-//     // if not empty, get the next state change in each trajectory
-//     std::fill(t1_array.begin(),t1_array.end(),infinity);
-//     if(!mosypop->Sv_trace.empty()){
-//       t1_SV = *mosypop->Sv_trace.begin();
-//       mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
-//       t1_array[0] = std::get<1>(t1_SV);
-//     }
-//     if(!mosypop->Iv_trace.empty()){
-//       t1_IV = *mosypop->Iv_trace.begin();
-//       mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
-//       t1_array[1] = std::get<1>(t1_IV);
-//     }
-//     if(!humanpop->X_trace.empty()){
-//       t1_X = *humanpop->X_trace.begin();
-//       humanpop->X_trace.erase(humanpop->X_trace.begin());
-//       t1_array[2] = std::get<1>(t1_X);
-//     }
-//
-//     // find which trajectory changes next
-//     auto min_elem = std::min_element(t1_array.begin(), t1_array.end());
-//     int mu = std::distance(t1_array.begin(), min_elem);
-//
-//     // compute length of this piecewise interval [t0,d1)
-//     t1 = t1_array[mu];
-//     dt = t1 - t0;
-//
-//     // state values at t0
-//     S = std::get<0>(t0_SV);
-//     I = std::get<0>(t0_IV);
-//     X = std::get<0>(t0_X);
-//
-//     // intensity over the interval
-//     H2M_intensity = a * c * X * S * dt;
-//     M2H_intensity = a * b * (1. - X) * I * dt;
-//
-//     // sample values
-//     H2M_bites = R::rpois(H2M_intensity);
-//     M2H_bites = R::rpois(M2H_intensity);
-//
-//     // add the bites to the mosquito for next time
-//     if(H2M_bites > 0){
-//       for(int k=0; k<H2M_bites; k++){
-//         double btime = R::runif(t0,t1);
-//         mosypop->H2M_bites.emplace(btime);
-//       }
-//     }
-//
-//     // add the bites to the human for next time
-//     if(M2H_bites > 0){
-//       for(int k=0; k<M2H_bites; k++){
-//         double btime = R::runif(t0,t1);
-//         humanpop->M2H_bites.emplace(btime);
-//       }
-//     }
-//
-//     // state change that happened first becomes new starting point
-//     if(mu==0){
-//       t0_SV = t1_SV;
-//     } else if(mu==1){
-//       t0_IV = t1_IV;
-//     } else if(mu==2){
-//       t0_X = t1_X;
-//     } else{
-//       std::string msg("invalid minimum element in 'bloodmeal': " + std::to_string(mu));
-//       Rcpp::stop(msg);
-//     }
-//
-//     // last end time becomes next beginning time
-//     t0 = t1;
-//   }
-//
-// };
 
 void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mosypop_ptr& mosypop){
 
@@ -686,21 +590,23 @@ Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::Intege
 
 
   int kh = humanpop->t_hist.size();
-  Rcpp::NumericMatrix outh(kh,3);
-  Rcpp::colnames(outh) = Rcpp::CharacterVector::create("time","S","I");
+  Rcpp::NumericMatrix outh(kh,4);
+  Rcpp::colnames(outh) = Rcpp::CharacterVector::create("time","SH","EH","IH");
   for(int j=0; j<kh; j++){
     outh(j,0) = humanpop->t_hist[j];
     outh(j,1) = humanpop->S_hist[j];
-    outh(j,2) = humanpop->I_hist[j];
+    outh(j,2) = humanpop->E_hist[j];
+    outh(j,3) = humanpop->I_hist[j];
   }
 
   int km = mosypop->t_hist.size();
-  Rcpp::NumericMatrix outm(km,3);
-  Rcpp::colnames(outm) = Rcpp::CharacterVector::create("time","S","I");
+  Rcpp::NumericMatrix outm(km,4);
+  Rcpp::colnames(outm) = Rcpp::CharacterVector::create("time","SV","EV","IV");
   for(int j=0; j<km; j++){
     outm(j,0) = mosypop->t_hist[j];
     outm(j,1) = mosypop->S_hist[j];
-    outm(j,2) = mosypop->I_hist[j];
+    outm(j,2) = mosypop->E_hist[j];
+    outm(j,3) = mosypop->I_hist[j];
   }
 
   return Rcpp::List::create(
