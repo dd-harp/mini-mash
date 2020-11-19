@@ -139,28 +139,39 @@ mosypop_ptr make_mosypop(const Rcpp::NumericVector parameters, const int SV, con
 // iterate the mosquitoes
 void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
 
+  double tmax{t0+dt};
+
+  // get bites from the previous time step
+  while(!mosypop->H2M_bites.empty()){
+
+    // take out one S mosquito
+    mosypop->S -= 1;
+
+    // find out how much hazard they accumulate between [bite time, t0)
+    double haz = (t0 - *mosypop->H2M_bites.begin()) * mosypop->g;
+
+    // did they survive until t0?
+    if(R::runif(0.,1.) < exp(-haz)){
+      mosypop->E += 1;
+      // queue the future EIP completion event, which will happen on this time step (or next)
+      mosypop->M_inf.emplace(*mosypop->H2M_bites.begin() + mosypop->EIP);
+    }
+
+    // pop that bite off
+    mosypop->H2M_bites.erase(mosypop->H2M_bites.begin());
+  }
+
+  // recalculate propentities valid at t0
+  mosypop->ak[1] = mosypop->g * static_cast<double>(mosypop->S);
+  mosypop->ak[2] = mosypop->g * static_cast<double>(mosypop->E);
+  mosypop->ak[3] = mosypop->g * static_cast<double>(mosypop->I);
+
   // push initial state into traces
   if(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty()){
     Rcpp::stop("'Sv_trace' and 'Iv_trace' should always be empty at start of time step \n");
   }
   mosypop->Sv_trace.emplace(queue_tuple(mosypop->S,t0));
   mosypop->Iv_trace.emplace(queue_tuple(mosypop->I,t0));
-
-  double tmax{t0+dt};
-
-  // get bites from the previous time step
-  while(!mosypop->H2M_bites.empty()){
-    // take out one S mosquito (they move to E)
-    mosypop->S -= 1;
-    mosypop->E += 1;
-    // queue the future EIP completion event
-    mosypop->M_inf.emplace(*mosypop->H2M_bites.begin() + mosypop->EIP);
-    mosypop->H2M_bites.erase(mosypop->H2M_bites.begin());
-  }
-
-  // FOUND THE BUG!!!!
-  // WE'RE NOT ACCUMULATING THE HAZARD FROM E->DIE FROM LAST STEP UNTIL t0!!!!
-  // FIX THIS!!!
 
   // simulate dynamics over this time step
   while(mosypop->tnow < tmax){
@@ -353,6 +364,9 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     humanpop->H_inf.emplace(*humanpop->M2H_bites.begin() + humanpop->LEP);
     humanpop->M2H_bites.erase(humanpop->M2H_bites.begin());
   }
+
+  // recalculate propensity valid at t0
+  humanpop->ak = humanpop->r * static_cast<double>(humanpop->I);
 
   // simulate dynamics over this time step
   while(humanpop->tnow < tmax){

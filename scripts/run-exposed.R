@@ -80,8 +80,8 @@ out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
 out_h[, ("species") := "Human"]
 
 ggplot(data = rbind(out_h,out_m)) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.9,linetype="dashed",size=1.15,data=dde_out) +
   geom_line(aes(x=time,y=mean,color=variable)) +
   facet_wrap(. ~ species,scales = "free_y") +
   ggtitle("MASH vs. DDE") +
