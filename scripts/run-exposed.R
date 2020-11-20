@@ -68,7 +68,9 @@ out[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
 #   ggtitle("Gillespie simulation vs. DDE") +
 #   theme_bw()
 
-plot_agg <- ggplot(data = rbind(ic_dt,out,fill=T)) +
+comb_out_agg <- rbind(ic_dt,out,fill=T)
+
+plot_agg <- ggplot(data = comb_out_agg[!variable %in% c("EV","EH"), ]) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
   geom_line(aes(x=time,y=mean,color=variable)) +
   geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
@@ -100,7 +102,9 @@ out_h[, ("species") := "Human"]
 #   ggtitle("MASH vs. DDE") +
 #   theme_bw()
 
-plot_disagg <- ggplot(data = rbind(ic_dt,rbind(out_h,out_m),fill=T)) +
+comb_out_disagg <- rbind(ic_dt,rbind(out_h,out_m),fill=T)
+
+plot_disagg <- ggplot(data = comb_out_disagg[!variable %in% c("EV","EH"),]) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
   geom_line(aes(x=time,y=mean,color=variable)) +
   geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +

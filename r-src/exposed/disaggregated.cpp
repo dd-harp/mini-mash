@@ -139,6 +139,10 @@ mosypop_ptr make_mosypop(const Rcpp::NumericVector parameters, const int SV, con
 // iterate the mosquitoes
 void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
 
+  if(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty()){
+    Rcpp::stop("'Sv_trace' and 'Iv_trace' should always be empty at start of time step \n");
+  }
+
   double tmax{t0+dt};
 
   // get bites from the previous time step
@@ -169,9 +173,6 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
   mosypop->ak[3] = mosypop->g * static_cast<double>(mosypop->I);
 
   // push initial state into traces
-  if(!mosypop->Sv_trace.empty() || !mosypop->Iv_trace.empty()){
-    Rcpp::stop("'Sv_trace' and 'Iv_trace' should always be empty at start of time step \n");
-  }
   mosypop->Sv_trace.emplace(queue_tuple(mosypop->S,t0));
   mosypop->Iv_trace.emplace(queue_tuple(mosypop->I,t0));
 
@@ -354,9 +355,6 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
   double tmax{t0+dt};
 
-  double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-  humanpop->X_trace.emplace(queue_tuple(X,t0));
-
   // get bites from the previous time step
   while(!humanpop->M2H_bites.empty()){
     // take out one S person (they move to E)
@@ -371,6 +369,10 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
   // recalculate propensity valid at t0
   humanpop->ak = humanpop->r * static_cast<double>(humanpop->I);
+
+  // push initial state into trace
+  double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
+  humanpop->X_trace.emplace(queue_tuple(X,t0));
 
   // simulate dynamics over this time step
   while(humanpop->tnow < tmax){
