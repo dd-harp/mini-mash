@@ -34,7 +34,7 @@ calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP
   SV <- NV - IV - EV
 
   list(
-    "y0" = c(SH=SH,IH=IH,SV=SV,IV=IV),
+    "y0" = c(SH=SH,IH=IH,SV=SV,EV=EV,IV=IV),
     "parameters" = c(g=g,b=b,a=a,c=c,r=r,EIP=EIP,LEP=LEP,SV0=SV,IV0=IV,SH0=SH,IH0=IH,lambda=lambda)
   )
 }

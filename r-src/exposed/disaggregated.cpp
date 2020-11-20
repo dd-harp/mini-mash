@@ -161,6 +161,8 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
     mosypop->H2M_bites.erase(mosypop->H2M_bites.begin());
   }
 
+  assert(mosypop->E == mosypop->M_inf.size() - 1);
+
   // recalculate propentities valid at t0
   mosypop->ak[1] = mosypop->g * static_cast<double>(mosypop->S);
   mosypop->ak[2] = mosypop->g * static_cast<double>(mosypop->E);
@@ -364,6 +366,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     humanpop->H_inf.emplace(*humanpop->M2H_bites.begin() + humanpop->LEP);
     humanpop->M2H_bites.erase(humanpop->M2H_bites.begin());
   }
+
+  assert(humanpop->E == humanpop->H_inf.size() - 1);
 
   // recalculate propensity valid at t0
   humanpop->ak = humanpop->r * static_cast<double>(humanpop->I);
@@ -573,10 +577,10 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 // [[Rcpp::export]]
 Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::IntegerVector y0, const double dt, const double tmax){
 
-  int SH = y0[0];
-  int IH = y0[1];
-  int SV = y0[2];
-  int IV = y0[3];
+  int SH = y0["SH"];
+  int IH = y0["IH"];
+  int SV = y0["SV"];
+  int IV = y0["IV"];
 
   const int outsize = 1E5;
   mosypop_ptr mosypop = make_mosypop(parameters,SV,IV,outsize);

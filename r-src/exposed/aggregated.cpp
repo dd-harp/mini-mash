@@ -154,10 +154,6 @@ Rcpp::NumericMatrix pfsim_aggregated(
     }
     delta_t[events::m_EIP] = *(m_EIP.begin()) - tnow;
     delta_t[events::h_LEP] = *(h_LEP.begin()) - tnow;
-    // Rcpp::Rcout << "delta_t: ";
-    // for(int j=0; j<8; j++){
-    //
-    // }
 
     // find minimum
     auto min_elem = std::min_element(delta_t.begin(), delta_t.end());
@@ -167,7 +163,6 @@ Rcpp::NumericMatrix pfsim_aggregated(
     // update time
     double delta = delta_t[min_mu];
     tnow += delta;
-    // Rcpp::Rcout << "delta: " << delta << " tnow: " << tnow << " tmax: " << tmax << "\n";
     if(tnow > tmax){
       break;
     }

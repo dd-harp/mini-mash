@@ -635,10 +635,10 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 // [[Rcpp::export]]
 Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::IntegerVector y0, const double dt, const double tmax){
 
-  int SH = y0[0];
-  int IH = y0[1];
-  int SV = y0[2];
-  int IV = y0[3];
+  int SH = y0["SH"];
+  int IH = y0["IH"];
+  int SV = y0["SV"];
+  int IV = y0["IV"];
 
   const int outsize = 1E5;
   mosypop_ptr mosypop = make_mosypop(parameters,SV,IV,outsize);
