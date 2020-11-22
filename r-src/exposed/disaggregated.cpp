@@ -165,6 +165,11 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
     mosypop->H2M_bites.erase(mosypop->H2M_bites.begin());
   }
 
+  mosypop->t_hist.push_back(mosypop->tnow);
+  mosypop->S_hist.push_back(mosypop->S);
+  mosypop->E_hist.push_back(mosypop->E);
+  mosypop->I_hist.push_back(mosypop->I);
+
   assert(mosypop->E == mosypop->M_inf.size() - 1);
 
   // recalculate propentities valid at t0
@@ -299,8 +304,9 @@ typedef struct humanpop_str {
   double Tk{0.};
   double ak{0.};
 
-  // integrated prevalence over [t0,t0+dt)
+  // state transitions for bloodmeal over [t0,t0+dt)
   queue_trace X_trace;
+  queue_trace Z_trace;
 
   humanpop_str(){Rcpp::Rcout << "'humanpop_str' ctor called at " << this << std::endl;};
   ~humanpop_str(){Rcpp::Rcout << "'humanpop_str' dtor called at " << this << std::endl;};
@@ -313,6 +319,7 @@ using humanpop_ptr = std::unique_ptr<humanpop_str>;
 
 // make the humans
 humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, const int IH, const int outsize){
+
   humanpop_ptr humanpop = std::make_unique<humanpop_str>();
 
   humanpop->S = SH;
@@ -349,8 +356,8 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
 void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
   // push initial state into traces
-  if(!humanpop->X_trace.empty()){
-    Rcpp::stop("'X_trace' should always be empty at start of time step \n");
+  if(!humanpop->X_trace.empty() || !humanpop->Z_trace.empty()){
+    Rcpp::stop("'X_trace' and 'Z_trace' should always be empty at start of time step \n");
   }
 
   double tmax{t0+dt};
@@ -365,14 +372,21 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     humanpop->M2H_bites.erase(humanpop->M2H_bites.begin());
   }
 
+  humanpop->t_hist.push_back(humanpop->tnow);
+  humanpop->S_hist.push_back(humanpop->S);
+  humanpop->E_hist.push_back(humanpop->E);
+  humanpop->I_hist.push_back(humanpop->I);
+
   assert(humanpop->E == humanpop->H_inf.size() - 1);
 
   // recalculate propensity valid at t0
   humanpop->ak = humanpop->r * static_cast<double>(humanpop->I);
 
   // push initial state into trace
-  double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
+  double X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
   humanpop->X_trace.emplace(queue_tuple(X,t0));
+  double Z = static_cast<double>(humanpop->S) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
+  humanpop->Z_trace.emplace(queue_tuple(Z,t0));
 
   // simulate dynamics over this time step
   while(humanpop->tnow < tmax){
@@ -396,9 +410,10 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     if(tsamp > tmax){
       double remaining = tmax - humanpop->tnow;
       humanpop->Tk += humanpop->ak * remaining;
-      X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-      humanpop->X_trace.emplace(queue_tuple(X,tmax));
-      humanpop->tnow = tmax;
+      X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
+      humanpop->X_trace.emplace(queue_tuple(X,t0));
+      Z = static_cast<double>(humanpop->S) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
+      humanpop->Z_trace.emplace(queue_tuple(Z,t0));      humanpop->tnow = tmax;
       break;
     }
     humanpop->tnow = tsamp;
@@ -418,8 +433,10 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
       Rcpp::stop(msg);
     }
 
-    X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->I));
-    humanpop->X_trace.emplace(queue_tuple(X,humanpop->tnow));
+    X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
+    humanpop->X_trace.emplace(queue_tuple(X,t0));
+    Z = static_cast<double>(humanpop->S) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
+    humanpop->Z_trace.emplace(queue_tuple(Z,t0));
 
     // update Tk
     humanpop->Tk += humanpop->ak * delta;
@@ -449,6 +466,9 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
 void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mosypop_ptr& mosypop){
 
+  assert(mosypop->H2M_bites.size() == 0);
+  assert(humanpop->M2H_bites.size() == 0);
+
   double a = parameters["a"];
   double c = parameters["c"];
   double b = parameters["b"];
@@ -460,19 +480,21 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
 
   // length of intervals
   double t1,t0,dt;
-  double S,I,X;
+  double S,I,X,Z;
 
   // next state change
-  std::array<double,3> t1_array{0.};
+  std::array<double,4> t1_array{0.};
 
   // beginning of piecewise trajectories
   queue_tuple t0_SV = *mosypop->Sv_trace.begin();
   queue_tuple t0_IV = *mosypop->Iv_trace.begin();
   queue_tuple t0_X = *humanpop->X_trace.begin();
+  queue_tuple t0_Z = *humanpop->Z_trace.begin();
 
   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
   humanpop->X_trace.erase(humanpop->X_trace.begin());
+  humanpop->Z_trace.erase(humanpop->Z_trace.begin());
 
   t0 = std::get<1>(t0_SV);
 
@@ -480,20 +502,23 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   queue_tuple t1_SV = *mosypop->Sv_trace.begin();
   queue_tuple t1_IV = *mosypop->Iv_trace.begin();
   queue_tuple t1_X = *humanpop->X_trace.begin();
+  queue_tuple t1_Z = *humanpop->Z_trace.begin();
 
   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
   humanpop->X_trace.erase(humanpop->X_trace.begin());
+  humanpop->Z_trace.erase(humanpop->Z_trace.begin());
 
   t1_array[0] = std::get<1>(t1_SV);
   t1_array[1] = std::get<1>(t1_IV);
   t1_array[2] = std::get<1>(t1_X);
+  t1_array[3] = std::get<1>(t1_Z);
 
   // compute over the TWICE step
   while( std::all_of(t1_array.begin(), t1_array.end(), [](const double y){return y < infinity;}) ){
 
-    H2M_intensity = 0.;
-    M2H_intensity = 0.;
+    H2M_intensity = 0.; // a c X S_v
+    M2H_intensity = 0.; // a b Z I_v
 
     // find which trajectory changes next
     auto min_elem = std::min_element(t1_array.begin(), t1_array.end());
@@ -507,10 +532,11 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
     S = std::get<0>(t0_SV);
     I = std::get<0>(t0_IV);
     X = std::get<0>(t0_X);
+    Z = std::get<0>(t0_Z);
 
     // intensity over the interval
     H2M_intensity = a * c * X * S * dt;
-    M2H_intensity = a * b * (1. - X) * I * dt;
+    M2H_intensity = a * b * Z * I * dt;
 
     // sample values
     H2M_bites = R::rpois(H2M_intensity);
@@ -559,6 +585,15 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
         t1_array[2] = std::get<1>(t1_X);
       } else {
         t1_array[2] = infinity;
+      }
+    } else if(mu==3){
+      t0_Z = t1_Z;
+      if(!humanpop->Z_trace.empty()){
+        t1_Z = *humanpop->Z_trace.begin();
+        humanpop->Z_trace.erase(humanpop->Z_trace.begin());
+        t1_array[3] = std::get<1>(t1_Z);
+      } else {
+        t1_array[3] = infinity;
       }
     } else {
       std::string msg("invalid minimum element in 'bloodmeal': " + std::to_string(mu));

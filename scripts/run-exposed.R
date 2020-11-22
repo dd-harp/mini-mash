@@ -113,3 +113,23 @@ plot_disagg <- ggplot(data = comb_out_disagg[!variable %in% c("EV","EH"),]) +
   theme_bw()
 
 ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde_E.tiff"),device = "tiff",width = 12,height = 6)
+
+
+# plot histograms
+
+out <- pfsim_aggregated(
+  tmax = tmax,
+  SH = IC$y0[["SH"]],
+  IH = IC$y0[["IH"]],
+  SV = IC$y0[["SV"]],
+  IV = IC$y0[["IV"]],
+  parameters = IC$parameters,
+  verbose = T
+)
+
+out <- melt(as.data.table(out),id.vars="time")
+ggplot(data = out) +
+  geom_histogram(aes(value,after_stat(density),fill=variable,color=variable,alpha=0.75)) +
+  facet_wrap(. ~ variable,scales="free")+
+  guides(alpha=FALSE)+
+  theme_bw()
