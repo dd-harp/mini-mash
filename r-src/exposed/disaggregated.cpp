@@ -411,9 +411,10 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
       double remaining = tmax - humanpop->tnow;
       humanpop->Tk += humanpop->ak * remaining;
       X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
-      humanpop->X_trace.emplace(queue_tuple(X,t0));
+      humanpop->X_trace.emplace(queue_tuple(X,tmax));
       Z = static_cast<double>(humanpop->S) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
-      humanpop->Z_trace.emplace(queue_tuple(Z,t0));      humanpop->tnow = tmax;
+      humanpop->Z_trace.emplace(queue_tuple(Z,tmax));
+      humanpop->tnow = tmax;
       break;
     }
     humanpop->tnow = tsamp;
@@ -434,9 +435,9 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     }
 
     X = static_cast<double>(humanpop->I) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
-    humanpop->X_trace.emplace(queue_tuple(X,t0));
+    humanpop->X_trace.emplace(queue_tuple(X,humanpop->tnow));
     Z = static_cast<double>(humanpop->S) / (static_cast<double>(humanpop->S) + static_cast<double>(humanpop->E) + static_cast<double>(humanpop->I));
-    humanpop->Z_trace.emplace(queue_tuple(Z,t0));
+    humanpop->Z_trace.emplace(queue_tuple(Z,humanpop->tnow));
 
     // update Tk
     humanpop->Tk += humanpop->ak * delta;
@@ -486,6 +487,7 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   std::array<double,4> t1_array{0.};
 
   // beginning of piecewise trajectories
+  // Rcpp::Rcout << "accessing t0\n";
   queue_tuple t0_SV = *mosypop->Sv_trace.begin();
   queue_tuple t0_IV = *mosypop->Iv_trace.begin();
   queue_tuple t0_X = *humanpop->X_trace.begin();
@@ -499,6 +501,7 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   t0 = std::get<1>(t0_SV);
 
   // end of the piecewise trajectories
+  // Rcpp::Rcout << "accessing t1\n";
   queue_tuple t1_SV = *mosypop->Sv_trace.begin();
   queue_tuple t1_IV = *mosypop->Iv_trace.begin();
   queue_tuple t1_X = *humanpop->X_trace.begin();
@@ -629,10 +632,11 @@ Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::Intege
 
   Rcpp::Rcout << "--- begin simulation ---\n";
   while(clock < tmax){
-
+    // Rcpp::Rcout << "--- run mosypop ---\n";
     run_mosypop(mosypop, clock, dt);
+    // Rcpp::Rcout << "--- run humanpop ---\n";
     run_humanpop(humanpop, clock, dt);
-
+    // Rcpp::Rcout << "--- run bloodmeal ---\n";
     bloodmeal(parameters,humanpop,mosypop);
 
     i++;

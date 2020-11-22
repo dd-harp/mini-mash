@@ -128,8 +128,32 @@ out <- pfsim_aggregated(
 )
 
 out <- melt(as.data.table(out),id.vars="time")
-ggplot(data = out) +
+out$type <- "Gillespie"
+ggplot(data = out[time > 365*10,]) +
   geom_histogram(aes(value,after_stat(density),fill=variable,color=variable,alpha=0.75)) +
   facet_wrap(. ~ variable,scales="free")+
   guides(alpha=FALSE)+
   theme_bw()
+
+
+full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
+
+full_out_m <- melt(as.data.table(full_out$mosquito),id.vars = "time")
+full_out_h <- melt(as.data.table(full_out$human),id.vars = "time")
+
+out_d <- rbind(full_out_h,full_out_m)
+out_d$type <- "MASH"
+
+ggplot(data = out_d[time > 365*10,]) +
+  geom_histogram(aes(value,after_stat(density),fill=variable,color=variable,alpha=0.75)) +
+  facet_wrap(. ~ variable,scales="free")+
+  guides(alpha=FALSE)+
+  theme_bw()
+
+out_b <- rbind(out,out_d)
+
+ggplot(data = out_b[time > 365*10 & !(variable %in% c("EH","EV")),]) +
+  geom_histogram(aes(value,after_stat(density),fill=type),alpha=0.5,position="identity",color=grey(0.25,0.75)) +
+  facet_wrap(. ~ variable,scales="free")+
+  theme_bw()
+
