@@ -42,6 +42,9 @@ struct queue_comp {
 
 using queue_trace = std::set<queue_tuple,queue_comp>;
 
+// structure to keep sorted histories
+
+
 
 /* --------------------------------------------------------------------------------
 #   syringes with wings: the mosquitoes
@@ -632,11 +635,10 @@ Rcpp::List run_miniMASH(const Rcpp::NumericVector parameters, const Rcpp::Intege
 
   Rcpp::Rcout << "--- begin simulation ---\n";
   while(clock < tmax){
-    // Rcpp::Rcout << "--- run mosypop ---\n";
+
     run_mosypop(mosypop, clock, dt);
-    // Rcpp::Rcout << "--- run humanpop ---\n";
     run_humanpop(humanpop, clock, dt);
-    // Rcpp::Rcout << "--- run bloodmeal ---\n";
+
     bloodmeal(parameters,humanpop,mosypop);
 
     i++;

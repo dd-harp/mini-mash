@@ -11,11 +11,18 @@
 calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP=10,LEP=7){
 
   P <- exp(-g*EIP)
-  SH <- NH*(1-X)
-  IH <- NH-SH
+
+  # infectious human population
+  IH <- NH*X
+
+  # incubating human population
+  EH <- IH*LEP*r
+
+  # susceptible human population
+  SH <- N - IH - EH
 
   # equilibrium IV
-  IV <- (r*IH*(SH + IH)) / (a * b * SH)
+  IV <-  -(IH*NH*r) / (a*b * (IH - NH + (IH*LEP*r)))
 
   # prob mosquito becomes infected and survives to become infectious
   p_Minf <- (a*c*X) / ((a*c*X) + g)
@@ -34,7 +41,7 @@ calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP
   SV <- NV - IV - EV
 
   list(
-    "y0" = c(SH=SH,IH=IH,SV=SV,IV=IV),
+    "y0" = c(SH=SH,EH=EH,IH=IH,SV=SV,EV=EV,IV=IV),
     "parameters" = c(g=g,b=b,a=a,c=c,r=r,EIP=EIP,LEP=LEP,SV0=SV,IV0=IV,SH0=SH,IH0=IH,lambda=lambda)
   )
 }
