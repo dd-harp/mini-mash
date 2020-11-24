@@ -12,127 +12,83 @@ source(here::here("r-src/deterministic-exposed.R"))
 
 NH <- 1e3
 X <- 0.3
+tmax <- 50
 
 IC <- calc_equilibrium(NH = NH,X = X)
 
-tmax <- 75
+# dde_odin <- derivs_odin(
+#   a = IC$parameters[["a"]],
+#   b = IC$parameters[["b"]],
+#   c = IC$parameters[["c"]],
+#   EIP = IC$parameters[["EIP"]],
+#   g = IC$parameters[["g"]],
+#   lambda = IC$parameters[["lambda"]],
+#   r = IC$parameters[["r"]],
+#   LEP = IC$parameters[["LEP"]],
+#   IH0 = IC$y0[["IH"]],
+#   IV0 = IC$y0[["IV"]],
+#   SH0 = IC$y0[["SH"]],
+#   SV0 = IC$y0[["SV"]],
+#   EH0 = IC$y0[["EH"]],
+#   EV0 = IC$y0[["EV"]]
+# )
+# 
+# dde_out <- dde_odin$run(t = 0:tmax)
+# 
+# dde_out <- as.data.table(dde_out)
+# data.table::setnames(x = dde_out,old = "t",new = "time")
+# dde_out <- data.table::melt(dde_out,id.vars="time")
+# 
+# ggplot(data=dde_out) +
+#   geom_line(aes(x=time,y=value,color=variable)) +
+#   theme_bw()
 
-dde_odin <- derivs_odin(
-  a = IC$parameters[["a"]],
-  b = IC$parameters[["b"]],
-  c = IC$parameters[["c"]],
-  EIP = IC$parameters[["EIP"]],
-  g = IC$parameters[["g"]],
-  lambda = IC$parameters[["lambda"]],
-  r = IC$parameters[["r"]],
-  LEP = IC$parameters[["LEP"]],
-  IH0 = IC$y0[["IH"]],
-  IV0 = IC$y0[["IV"]],
-  EH0 = 0,
-  EV0 = 0,
-  SH0 = IC$y0[["SH"]],
-  SV0 = IC$y0[["SV"]]
+
+Rcpp::sourceCpp(here::here("r-src/exposed/aggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
+
+tmax <- 365*500
+agg_out <- pfsim_aggregated(
+  tmax = tmax,
+  SH = IC$y0[["SH"]] + IC$y0[["EH"]],
+  IH = IC$y0[["IH"]],
+  SV = IC$y0[["SV"]] + IC$y0[["EV"]],
+  IV = IC$y0[["IV"]],
+  parameters = IC$parameters,
+  verbose = TRUE
 )
 
-dde_out <- dde_odin$run(t = 0:tmax)
+agg_out <- as.data.table(discretise(out = agg_out,dt = 1))
+agg_out <- data.table::melt(agg_out,id.vars = "time",measure.vars = c("SH","EH","IH","SV","EV","IV"))
+agg_out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+agg_out[, ("sd") := vapply(X = 1:.N,FUN = function(n){sd(value[1:n])},FUN.VALUE = numeric(1)), by = .(variable)]
+agg_out[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
 
-dde_out <- as.data.table(dde_out)
-data.table::setnames(x = dde_out,old = "t",new = "time")
-dde_out <- data.table::melt(dde_out,id.vars = "time")
-dde_out[, ("species") := ifelse(variable %in% c("SH","IH","EH"),"Human","Mosquito"),]
 
-ggplot(data = dde_out) +
-  geom_line(aes(x=time,y=value,color=variable),size=1.05) +
-  facet_wrap(. ~ species,scales = "free_y") +
+ic_dt <- data.table::melt(as.data.table(t(as.data.frame(IC$y0))))
+colnames(ic_dt)[2] <- "Equilibrium"
+ic_dt[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
+
+comb_out_agg <- rbind(ic_dt,agg_out,fill=T)
+
+plot_agg <- ggplot(data = comb_out_agg) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
+  geom_line(aes(x=time,y=mean,color=variable)) +
+  geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
+  facet_wrap(. ~ variable,scales = "free_y") +
+  ggtitle("Gillespie simulation vs. DDE") +
   theme_bw()
 
-dde_out[variable=="EH",]
-dde_out[variable=="EV",]
+ggsave(plot = plot_agg, filename = here::here("figs/agg_ts_exact.tiff"),device = "tiff",width = 10,height = 4, compression = "lzw")
 
 
-# the blood meal example
-tmin <- 0
-tmax <- 5
+plot_agg_sd <- ggplot(data = comb_out_agg) +
+  geom_line(aes(x=time,y=mean,color=variable)) + 
+  geom_ribbon(aes(x=time,ymin=mean-sd,ymax=mean+sd,fill=variable),alpha=0.25) +
+  geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
+  facet_wrap(. ~ variable,scales = "free_y") +
+  ggtitle("Gillespie simulation vs. DDE") +
+  guides(fill=FALSE,color=FALSE) +
+  theme_bw()
 
-set.seed(342)
-
-St <- c(tmin,sort(runif(n = 2,min = 0,max = 5)),tmax)
-Sv <- c(100,rpois(n = 2,lambda = 100),100)
-
-Xt <- c(tmin,sort(runif(n = 1,min = 0,max = 5)),tmax)
-Xv <- c(0.5,rbeta(n = 1,shape1 = 10,shape2 = 10),0.5)
-
-
-
-a <- 0.9 * 1.3
-c <- 0.15
-
-LambdaAnaly <- S_traj[[2]][1] * 100 * a * c * 0.5
-LambdaAnaly <- LambdaAnaly +( (4.8778720 -  1.103043 ) * a * c * 90 * 0.5 )
-LambdaAnaly <- LambdaAnaly +( ( 4.958862 - 4.8778720 ) * a * c * 90 * 0.5649469 )
-LambdaAnaly <- LambdaAnaly +( ( 5 - 4.958862 ) * a * c * 112 * 0.5649469 )
-
-# algorithm
-S_traj <- mapply(FUN = function(x,y){
-  c(x,y)
-},x=St,y=Sv,SIMPLIFY = F)
-
-X_traj <- mapply(FUN = function(x,y){
-  c(x,y)
-},x=Xt,y=Xv,SIMPLIFY = F)
-
-lambda <- 0
-t0 <- tmin
-
-t0_S <- S_traj[[1]]
-S_traj <- S_traj[-1]
-
-t0_X <- X_traj[[1]]
-X_traj <- X_traj[-1]
-
-t1_S <- S_traj[[1]]
-S_traj <- S_traj[-1]
-
-t1_X <- X_traj[[1]]
-X_traj <- X_traj[-1]
-
-t1_times <- c(S=t1_S[1],X=t1_X[1])
-i <- 0
-ddt <- 0
-# while( !( length(S_traj)==0 & length(X_traj)==0 )) {
-while( all(is.finite(t1_times)) )   {
-  
-  mu <- which.min(t1_times)
-  t1 <- t1_times[mu]
-  dt <- t1 - t0
-  ddt <- ddt + dt
-  
-  lambda <- lambda + (a * c * t0_X[2] * t0_S[2] * dt)
-    
-  t0 <- t1
-  if(mu==1){
-    t0_S <- t1_S
-    if( length(S_traj)!=0 ){
-      t1_S <- S_traj[[1]]
-      S_traj <- S_traj[-1]
-      t1_times[1] <- t1_S[1]
-    } else {
-      t1_times[1] <- Inf
-    }
-  } else {
-    t0_X <- t1_X
-    if( length(X_traj)!=0 ){
-      t1_X <- X_traj[[1]]
-      X_traj <- X_traj[-1]
-      t1_times[2] <- t1_X[1]
-    } else {
-      t1_times[2] <- Inf
-    }
-  }
-  i <- i +1
-}
-
-
-
-
-
+ggsave(plot = plot_agg_sd, filename = here::here("figs/agg_ts_sd_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")

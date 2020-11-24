@@ -10,6 +10,7 @@
 # LEP = duration in liver
 calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP=10,LEP=7){
 
+  # P(survive EIP)
   P <- exp(-g*EIP)
 
   # infectious human population
@@ -19,7 +20,7 @@ calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP
   EH <- IH*LEP*r
 
   # susceptible human population
-  SH <- N - IH - EH
+  SH <- NH - IH - EH
 
   # equilibrium IV
   IV <-  -(IH*NH*r) / (a*b * (IH - NH + (IH*LEP*r)))
