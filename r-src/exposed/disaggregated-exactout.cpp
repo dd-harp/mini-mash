@@ -362,8 +362,8 @@ typedef struct humanpop_str {
   double ak{0.};
 
   // state transitions for bloodmeal over [t0,t0+dt)
-  queue_trace S_trace;
-  queue_trace I_trace;
+  queue_trace Sh_trace;
+  queue_trace Ih_trace;
 
   humanpop_str(){Rcpp::Rcout << "'humanpop_str' ctor called at " << this << std::endl;};
   ~humanpop_str(){Rcpp::Rcout << "'humanpop_str' dtor called at " << this << std::endl;};
@@ -413,7 +413,7 @@ humanpop_ptr make_humanpop(const Rcpp::NumericVector parameters, const int SH, c
 void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
 
   // push initial state into traces
-  if(!humanpop->S_trace.empty() || !humanpop->I_trace.empty()){
+  if(!humanpop->Sh_trace.empty() || !humanpop->Ih_trace.empty()){
     Rcpp::stop("'S_trace' and 'I_trace' should always be empty at start of time step \n");
   }
 
@@ -457,8 +457,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
   humanpop->ak = humanpop->r * static_cast<double>(humanpop->I);
 
   // push initial state into trace
-  humanpop->S_trace.emplace(queue_tuple(humanpop->S,t0));
-  humanpop->I_trace.emplace(queue_tuple(humanpop->I,t0));
+  humanpop->Sh_trace.emplace(queue_tuple(humanpop->S,t0));
+  humanpop->Ih_trace.emplace(queue_tuple(humanpop->I,t0));
 
   // simulate dynamics over this time step [t0,tmax)
   while(humanpop->tnow < tmax){
@@ -483,8 +483,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
     if(tsamp > tmax){
       double remaining = tmax - humanpop->tnow;
       humanpop->Tk += humanpop->ak * remaining;
-      humanpop->S_trace.emplace(queue_tuple(humanpop->S,tmax));
-      humanpop->I_trace.emplace(queue_tuple(humanpop->I,tmax));
+      humanpop->Sh_trace.emplace(queue_tuple(humanpop->S,tmax));
+      humanpop->Ih_trace.emplace(queue_tuple(humanpop->I,tmax));
       humanpop->tnow = tmax;
       break;
     }
@@ -505,8 +505,8 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
       Rcpp::stop(msg);
     }
 
-    humanpop->S_trace.emplace(queue_tuple(humanpop->S,humanpop->tnow));
-    humanpop->I_trace.emplace(queue_tuple(humanpop->I,humanpop->tnow));
+    humanpop->Sh_trace.emplace(queue_tuple(humanpop->S,humanpop->tnow));
+    humanpop->Ih_trace.emplace(queue_tuple(humanpop->I,humanpop->tnow));
 
     // update Tk
     humanpop->Tk += humanpop->ak * delta;
@@ -576,13 +576,13 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   // Rcpp::Rcout << "accessing t0\n";
   queue_tuple t0_SV = *mosypop->Sv_trace.begin();
   queue_tuple t0_IV = *mosypop->Iv_trace.begin();
-  queue_tuple t0_SH = *humanpop->S_trace.begin();
-  queue_tuple t0_IH = *humanpop->I_trace.begin();
+  queue_tuple t0_SH = *humanpop->Sh_trace.begin();
+  queue_tuple t0_IH = *humanpop->Ih_trace.begin();
 
   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
-  humanpop->S_trace.erase(humanpop->S_trace.begin());
-  humanpop->I_trace.erase(humanpop->I_trace.begin());
+  humanpop->Sh_trace.erase(humanpop->Sh_trace.begin());
+  humanpop->Ih_trace.erase(humanpop->Ih_trace.begin());
 
   t0 = std::get<1>(t0_SV);
 
@@ -590,13 +590,13 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
   // Rcpp::Rcout << "accessing t1\n";
   queue_tuple t1_SV = *mosypop->Sv_trace.begin();
   queue_tuple t1_IV = *mosypop->Iv_trace.begin();
-  queue_tuple t1_SH = *humanpop->S_trace.begin();
-  queue_tuple t1_IH = *humanpop->I_trace.begin();
+  queue_tuple t1_SH = *humanpop->Sh_trace.begin();
+  queue_tuple t1_IH = *humanpop->Ih_trace.begin();
 
   mosypop->Sv_trace.erase(mosypop->Sv_trace.begin());
   mosypop->Iv_trace.erase(mosypop->Iv_trace.begin());
-  humanpop->S_trace.erase(humanpop->S_trace.begin());
-  humanpop->I_trace.erase(humanpop->I_trace.begin());
+  humanpop->Sh_trace.erase(humanpop->Sh_trace.begin());
+  humanpop->Ih_trace.erase(humanpop->Ih_trace.begin());
 
   t1_array[0] = std::get<1>(t1_SV);
   t1_array[1] = std::get<1>(t1_IV);
@@ -674,18 +674,18 @@ void bloodmeal(const Rcpp::NumericVector parameters, humanpop_ptr& humanpop, mos
       }
     } else if(mu==2){
       t0_SH = t1_SH;
-      if(!humanpop->S_trace.empty()){
-        t1_SH = *humanpop->S_trace.begin();
-        humanpop->S_trace.erase(humanpop->S_trace.begin());
+      if(!humanpop->Sh_trace.empty()){
+        t1_SH = *humanpop->Sh_trace.begin();
+        humanpop->Sh_trace.erase(humanpop->Sh_trace.begin());
         t1_array[2] = std::get<1>(t1_SH);
       } else {
         t1_array[2] = infinity;
       }
     } else if(mu==3){
       t0_IH = t1_IH;
-      if(!humanpop->I_trace.empty()){
-        t1_IH = *humanpop->I_trace.begin();
-        humanpop->I_trace.erase(humanpop->I_trace.begin());
+      if(!humanpop->Ih_trace.empty()){
+        t1_IH = *humanpop->Ih_trace.begin();
+        humanpop->Ih_trace.erase(humanpop->Ih_trace.begin());
         t1_array[3] = std::get<1>(t1_IH);
       } else {
         t1_array[3] = infinity;
@@ -759,8 +759,37 @@ Rcpp::List run_miniMASH_exactbm(const Rcpp::NumericVector parameters, const Rcpp
     outm(j,3) = mosypop->I_hist[j];
   }
 
+  // exact output
+  int h_exact = humanpop->human_hist.size();
+  Rcpp::NumericMatrix hout_e(h_exact,4);
+  Rcpp::colnames(hout_e) = Rcpp::CharacterVector::create("time","SH","EH","IH");
+  hist_elem histelem;
+  for(int j=0; j<h_exact; j++){
+    histelem = *humanpop->human_hist.begin();
+    hout_e(j,0) = histelem.t;
+    hout_e(j,1) = histelem.S;
+    hout_e(j,2) = histelem.E;
+    hout_e(j,3) = histelem.I;
+    humanpop->human_hist.erase(humanpop->human_hist.begin());
+  }
+
+  int m_exact = mosypop->mosy_hist.size();
+  Rcpp::NumericMatrix mout_e(m_exact,4);
+  Rcpp::colnames(mout_e) = Rcpp::CharacterVector::create("time","SV","EV","IV");
+  for(int j=0; j<m_exact; j++){
+    histelem = *mosypop->mosy_hist.begin();
+    mout_e(j,0) = histelem.t;
+    mout_e(j,1) = histelem.S;
+    mout_e(j,2) = histelem.E;
+    mout_e(j,3) = histelem.I;
+    mosypop->mosy_hist.erase(mosypop->mosy_hist.begin());
+  }
+
+
   return Rcpp::List::create(
     Rcpp::Named("mosquito") = outm,
-    Rcpp::Named("human") = outh
+    Rcpp::Named("human") = outh,
+    Rcpp::Named("mosquito_exact") = mout_e,
+    Rcpp::Named("human_exact") = hout_e
   );
 }

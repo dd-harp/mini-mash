@@ -1,3 +1,7 @@
+# --------------------------------------------------------------------------------
+# load libraries and setup
+# --------------------------------------------------------------------------------
+
 rm(list=ls());gc()
 dev.off()
 
@@ -12,7 +16,7 @@ source(here::here("r-src/deterministic-exposed.R"))
 
 NH <- 1e3
 X <- 0.3
-tmax <- 50
+tmax <- 365*100
 
 IC <- calc_equilibrium(NH = NH,X = X)
 
@@ -44,10 +48,13 @@ IC <- calc_equilibrium(NH = NH,X = X)
 #   theme_bw()
 
 
+# --------------------------------------------------------------------------------
+# run Gillespie simulation
+# --------------------------------------------------------------------------------
+
 Rcpp::sourceCpp(here::here("r-src/exposed/aggregated.cpp"))
 Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
 
-tmax <- 365*500
 agg_out <- pfsim_aggregated(
   tmax = tmax,
   SH = IC$y0[["SH"]] + IC$y0[["EH"]],
@@ -81,7 +88,6 @@ plot_agg <- ggplot(data = comb_out_agg) +
 
 ggsave(plot = plot_agg, filename = here::here("figs/agg_ts_exact.tiff"),device = "tiff",width = 10,height = 4, compression = "lzw")
 
-
 plot_agg_sd <- ggplot(data = comb_out_agg) +
   geom_line(aes(x=time,y=mean,color=variable)) + 
   geom_ribbon(aes(x=time,ymin=mean-sd,ymax=mean+sd,fill=variable),alpha=0.25) +
@@ -92,3 +98,18 @@ plot_agg_sd <- ggplot(data = comb_out_agg) +
   theme_bw()
 
 ggsave(plot = plot_agg_sd, filename = here::here("figs/agg_ts_sd_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")
+
+plot_agg_hist <- ggplot(data = comb_out_agg) +
+  geom_histogram(aes(value,after_stat(density),fill=variable), position = "identity", alpha = 0.5, color = adjustcolor("black",alpha.f = 0.85),size=0.25) + 
+  geom_vline(aes(xintercept = Equilibrium, color = variable),linetype=2,alpha=0.9,size=1.05)+
+  facet_wrap(. ~ variable,scales = "free") +
+  ggtitle("Gillespie simulation vs. DDE") +
+  guides(fill=FALSE,color=FALSE) +
+  theme_bw()
+
+ggsave(plot = plot_agg_hist, filename = here::here("figs/agg_hist_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")
+
+
+# --------------------------------------------------------------------------------
+# run MASH simulation
+# --------------------------------------------------------------------------------
