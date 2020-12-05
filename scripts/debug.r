@@ -113,3 +113,25 @@ ggsave(plot = plot_agg_hist, filename = here::here("figs/agg_hist_exact.tiff"),d
 # --------------------------------------------------------------------------------
 # run MASH simulation
 # --------------------------------------------------------------------------------
+
+Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-exactout.cpp"))
+
+IC_MASH <- c(
+  SH = IC$y0[["SH"]] + IC$y0[["EH"]], 
+  IH = IC$y0[["IH"]],
+  SV = IC$y0[["SV"]] + IC$y0[["EV"]],
+  IV = IC$y0[["IV"]]
+)
+
+dis_out <- run_miniMASH_exactbm(
+  parameters = IC$parameters,
+  y0 = IC_MASH,
+  dt = 5,
+  tmax = tmax
+)
+
+IC$y0[4:6]
+colMeans(dis_out$mosquito[,2:4])
+
+IC$y0[1:3]
+colMeans(dis_out$human[,2:4])
