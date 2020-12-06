@@ -118,28 +118,17 @@ Rcpp::NumericMatrix pfsim_aggregated(
   EV_hist.push_back(X[states::EV]);
   IV_hist.push_back(X[states::IV]);
 
-
-  // // calculate initial propensities
-  // double x = static_cast<double>(X[states::IH]) / (static_cast<double>(X[states::IH]) + static_cast<double>(X[states::SH]));
-  //
-  // ak[events::emerge] = lambda;
-  // ak[events::SV_die] = g * static_cast<double>(X[states::SV]);
-  // ak[events::EV_die] = g * static_cast<double>(X[states::EV]);
-  // ak[events::IV_die] = g * static_cast<double>(X[states::IV]);
-  // ak[events::m_inf] = a * c * x * static_cast<double>(X[states::SV]);
-  // ak[events::h_inf] = a * b * static_cast<double>(X[states::IV]) * (1. - x);
-  // ak[events::h_rec] = r * static_cast<double>(X[states::IH]);
-
   // calculate initial propensities
   double NH = static_cast<double>(X[states::SH]) + static_cast<double>(X[states::EH]) + static_cast<double>(X[states::IH]);
   double x = static_cast<double>(X[states::IH]) / NH;
+  double z = static_cast<double>(X[states::SH]) / NH;
 
   ak[events::emerge] = lambda;
   ak[events::SV_die] = g * static_cast<double>(X[states::SV]);
   ak[events::EV_die] = g * static_cast<double>(X[states::EV]);
   ak[events::IV_die] = g * static_cast<double>(X[states::IV]);
   ak[events::m_inf] = a * c * x * static_cast<double>(X[states::SV]);
-  ak[events::h_inf] = a * b * static_cast<double>(X[states::IV]) * (1. / NH) * static_cast<double>(X[states::SH]);
+  ak[events::h_inf] = a * b * z * static_cast<double>(X[states::IV]);
   ak[events::h_rec] = r * static_cast<double>(X[states::IH]);
 
   // draw internal firing times
@@ -233,25 +222,16 @@ Rcpp::NumericMatrix pfsim_aggregated(
     }
 
     // recalculate propentities
-    // double x = static_cast<double>(X[states::IH]) / (static_cast<double>(X[states::IH]) + static_cast<double>(X[states::SH]));
-    //
-    // ak[events::emerge] = lambda;
-    // ak[events::SV_die] = g * static_cast<double>(X[states::SV]);
-    // ak[events::EV_die] = g * static_cast<double>(X[states::EV]);
-    // ak[events::IV_die] = g * static_cast<double>(X[states::IV]);
-    // ak[events::m_inf] = a * c * x * static_cast<double>(X[states::SV]);
-    // ak[events::h_inf] = a * b * static_cast<double>(X[states::IV]) * (1. - x);
-    // ak[events::h_rec] = r * static_cast<double>(X[states::IH]);
-
     double NH = static_cast<double>(X[states::SH]) + static_cast<double>(X[states::EH]) + static_cast<double>(X[states::IH]);
     double x = static_cast<double>(X[states::IH]) / NH;
+    double z = static_cast<double>(X[states::SH]) / NH;
 
     ak[events::emerge] = lambda;
     ak[events::SV_die] = g * static_cast<double>(X[states::SV]);
     ak[events::EV_die] = g * static_cast<double>(X[states::EV]);
     ak[events::IV_die] = g * static_cast<double>(X[states::IV]);
     ak[events::m_inf] = a * c * x * static_cast<double>(X[states::SV]);
-    ak[events::h_inf] = a * b * static_cast<double>(X[states::IV]) * (1. / NH) * static_cast<double>(X[states::SH]);
+    ak[events::h_inf] = a * b * z * static_cast<double>(X[states::IV]);
     ak[events::h_rec] = r * static_cast<double>(X[states::IH]);
 
     assert(std::all_of(X.begin(), X.end(), [](int i){return i >= 0;}));

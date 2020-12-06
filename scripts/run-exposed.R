@@ -1,23 +1,23 @@
+# --------------------------------------------------------------------------------
+# load libraries and setup
+# --------------------------------------------------------------------------------
+
 rm(list=ls());gc()
 dev.off()
 
 library(here)
 library(data.table)
-library(odin)
 library(ggplot2)
 library(deSolve)
 library(Rcpp)
 
-Rcpp::sourceCpp(here::here("r-src/exposed/aggregated.cpp"))
-Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
-source(here::here("r-src/deterministic.R"))
+source(here::here("r-src/deterministic-exposed.R"))
 
 NH <- 1e3
 X <- 0.3
+tmax <- 365*100
 
 IC <- calc_equilibrium(NH = NH,X = X)
-
-tmax <- 365*100
 
 # dde_odin <- derivs_odin(
 #   a = IC$parameters[["a"]],
@@ -31,129 +31,170 @@ tmax <- 365*100
 #   IH0 = IC$y0[["IH"]],
 #   IV0 = IC$y0[["IV"]],
 #   SH0 = IC$y0[["SH"]],
-#   SV0 = IC$y0[["SV"]]
+#   SV0 = IC$y0[["SV"]],
+#   EH0 = IC$y0[["EH"]],
+#   EV0 = IC$y0[["EV"]]
 # )
 # 
 # dde_out <- dde_odin$run(t = 0:tmax)
 # 
 # dde_out <- as.data.table(dde_out)
 # data.table::setnames(x = dde_out,old = "t",new = "time")
-# dde_out <- data.table::melt(dde_out,id.vars = "time",measure.vars = c("SH","IH","SV","IV"))
-# dde_out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
+# dde_out <- data.table::melt(dde_out,id.vars="time")
+# 
+# ggplot(data=dde_out) +
+#   geom_line(aes(x=time,y=value,color=variable)) +
+#   theme_bw()
+
+
+# --------------------------------------------------------------------------------
+# run Gillespie simulation
+# --------------------------------------------------------------------------------
+
+Rcpp::sourceCpp(here::here("r-src/exposed/aggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
+
+agg_out <- pfsim_aggregated(
+  tmax = tmax,
+  SH = IC$y0[["SH"]],
+  IH = IC$y0[["IH"]] + IC$y0[["EH"]],
+  SV = IC$y0[["SV"]],
+  IV = IC$y0[["IV"]] + IC$y0[["EV"]],
+  parameters = IC$parameters,
+  verbose = TRUE
+)
+
+agg_out <- as.data.table(discretise(out = agg_out,dt = 1))
+agg_out <- data.table::melt(agg_out,id.vars = "time",measure.vars = c("SH","EH","IH","SV","EV","IV"))
+# agg_out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+# agg_out[, ("sd") := vapply(X = 1:.N,FUN = function(n){sd(value[1:n])},FUN.VALUE = numeric(1)), by = .(variable)]
+agg_out[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
+
 
 ic_dt <- data.table::melt(as.data.table(t(as.data.frame(IC$y0))))
 colnames(ic_dt)[2] <- "Equilibrium"
 ic_dt[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
 
-out <- pfsim_aggregated(
-  tmax = tmax,
-  SH = IC$y0[["SH"]],
-  IH = IC$y0[["IH"]],
-  SV = IC$y0[["SV"]],
-  IV = IC$y0[["IV"]],
-  parameters = IC$parameters,
-  verbose = T
-)
+comb_out_agg <- rbind(ic_dt,agg_out,fill=T)
 
-out <- data.table::as.data.table(discretise(out = out,dt = 1))
-out <- data.table::melt(out,id.vars = "time",measure.vars = c("SH","EH","IH","SV","EV","IV"))
-out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
-out[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
+plot_agg_hist <- ggplot(data = comb_out_agg) +
+  geom_histogram(aes(value,after_stat(density),fill=variable), position = "identity", alpha = 0.5, color = adjustcolor("black",alpha.f = 0.85),size=0.25) + 
+  geom_vline(aes(xintercept = Equilibrium, color = variable),linetype=2,alpha=0.9,size=1.05)+
+  facet_wrap(. ~ variable,scales = "free") +
+  ggtitle("Gillespie simulation vs. DDE") +
+  guides(fill=FALSE,color=FALSE) +
+  theme_bw()
 
-# plot_agg <- ggplot(data = rbind(ic_dt,out,fill=T)) +
+ggsave(plot = plot_agg_hist, filename = here::here("figs/agg_hist_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")
+
+# plot_agg <- ggplot(data = comb_out_agg) +
 #   geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
 #   geom_line(aes(x=time,y=mean,color=variable)) +
 #   geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
-#   facet_wrap(. ~ species,scales = "free_y") +
+#   facet_wrap(. ~ variable,scales = "free_y") +
 #   ggtitle("Gillespie simulation vs. DDE") +
 #   theme_bw()
+# 
+# ggsave(plot = plot_agg, filename = here::here("figs/agg_ts_exact.tiff"),device = "tiff",width = 10,height = 4, compression = "lzw")
+# 
+# plot_agg_sd <- ggplot(data = comb_out_agg) +
+#   geom_line(aes(x=time,y=mean,color=variable)) + 
+#   geom_ribbon(aes(x=time,ymin=mean-sd,ymax=mean+sd,fill=variable),alpha=0.25) +
+#   geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
+#   facet_wrap(. ~ variable,scales = "free_y") +
+#   ggtitle("Gillespie simulation vs. DDE") +
+#   guides(fill=FALSE,color=FALSE) +
+#   theme_bw()
+# 
+# ggsave(plot = plot_agg_sd, filename = here::here("figs/agg_ts_sd_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")
 
-comb_out_agg <- rbind(ic_dt,out,fill=T)
 
-plot_agg <- ggplot(data = comb_out_agg[!variable %in% c("EV","EH"), ]) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
-  geom_line(aes(x=time,y=mean,color=variable)) +
-  geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
-  facet_wrap(. ~ variable,scales = "free_y") +
-  ggtitle("Gillespie simulation vs. DDE") +
-  theme_bw()
-
-ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde_E.tiff"),device = "tiff",width = 12,height = 6)
+# --------------------------------------------------------------------------------
+# run MASH simulation
+# --------------------------------------------------------------------------------
 
 Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated.cpp"))
 
-full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
-
-out_m <- data.table::as.data.table(discretise(out = full_out$mosquito,dt = 1))
-out_m <- data.table::melt(out_m,id.vars="time")
-out_m[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
-out_m[, ("species") := "Mosquito"]
-
-out_h <- data.table::as.data.table(discretise(out = full_out$human,dt = 1))
-out_h <- data.table::melt(out_h,id.vars="time")
-out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
-out_h[, ("species") := "Human"]
-
-# plot_disagg <- ggplot(data = rbind(ic_dt,rbind(out_h,out_m),fill=T)) +
-#   geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
-#   geom_line(aes(x=time,y=mean,color=variable)) +
-#   geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
-#   facet_wrap(. ~ species,scales = "free_y") +
-#   ggtitle("MASH vs. DDE") +
-#   theme_bw()
-
-comb_out_disagg <- rbind(ic_dt,rbind(out_h,out_m),fill=T)
-
-plot_disagg <- ggplot(data = comb_out_disagg[!variable %in% c("EV","EH"),]) +
-  geom_line(aes(x=time,y=value,color=variable),alpha=0.25) +
-  geom_line(aes(x=time,y=mean,color=variable)) +
-  geom_hline(aes(yintercept=Equilibrium,color=variable),linetype=2,alpha=0.9,size=1.05) +
-  facet_wrap(. ~ variable,scales = "free_y") +
-  ggtitle("MASH vs. DDE") +
-  theme_bw()
-
-ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde_E.tiff"),device = "tiff",width = 12,height = 6)
-
-
-# plot histograms
-
-out <- pfsim_aggregated(
-  tmax = tmax,
-  SH = IC$y0[["SH"]],
-  IH = IC$y0[["IH"]],
+IC_MASH <- c(
+  SH = IC$y0[["SH"]], 
+  IH = IC$y0[["IH"]] + IC$y0[["EH"]],
   SV = IC$y0[["SV"]],
-  IV = IC$y0[["IV"]],
-  parameters = IC$parameters,
-  verbose = T
+  IV = IC$y0[["IV"]] + IC$y0[["EV"]]
 )
 
-out <- melt(as.data.table(out),id.vars="time")
-out$type <- "Gillespie"
-ggplot(data = out[time > 365*10,]) +
-  geom_histogram(aes(value,after_stat(density),fill=variable,color=variable,alpha=0.75)) +
-  facet_wrap(. ~ variable,scales="free")+
-  guides(alpha=FALSE)+
+system.time(dis_out <- run_miniMASH_exactbm(
+  parameters = IC$parameters,
+  y0 = round(IC_MASH),
+  dt = 5,
+  tmax = tmax,
+  verbose = FALSE
+))
+
+dis_compare <- as.data.frame(rbind(
+  SIM = c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])),
+  DDE = IC$y0,
+  DIFF = abs(c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
+))
+
+dis_compare <- cbind(dis_compare, MOSY = c(sum(colMeans(dis_out$mosquito[,2:4])),sum(IC$y0[4:6]),NaN))
+dis_compare$MOSY[3] <- abs(dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
+
+dis_compare <- cbind(dis_compare, HUM = c(sum(colMeans(dis_out$human[,2:4])),sum(IC$y0[1:3]),NaN))
+dis_compare$HUM[3] <- abs(dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
+
+dis_compare
+
+mosy_out <- as.data.table(dis_out$mosquito)
+mosy_out <- data.table::melt(mosy_out,id.vars = "time")
+mosy_out[ , ("species") := "Mosquito"]
+human_out <- as.data.table(dis_out$human)
+human_out <- data.table::melt(human_out,id.vars="time")
+human_out[, ("species") := "Human"]
+
+comb_out_dis <- rbind(ic_dt,mosy_out,human_out,fill=T)
+
+plot_dis_hist <- ggplot(data = comb_out_dis) +
+  geom_histogram(aes(value,after_stat(density),fill=variable), position = "identity", alpha = 0.5, color = adjustcolor("black",alpha.f = 0.85),size=0.25) + 
+  geom_vline(aes(xintercept = Equilibrium, color = variable),linetype=2,alpha=0.9,size=1.05)+
+  facet_wrap(. ~ variable,scales = "free") +
+  ggtitle("MASH vs. DDE") +
+  guides(fill=FALSE,color=FALSE) +
   theme_bw()
 
+ggsave(plot = plot_dis_hist, filename = here::here("figs/dis_hist_exact.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")
 
-full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
 
-full_out_m <- melt(as.data.table(full_out$mosquito),id.vars = "time")
-full_out_h <- melt(as.data.table(full_out$human),id.vars = "time")
+# --------------------------------------------------------------------------------
+# run MASH simulation with sorted output
+# --------------------------------------------------------------------------------
 
-out_d <- rbind(full_out_h,full_out_m)
-out_d$type <- "MASH"
+Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-exact.cpp"))
 
-ggplot(data = out_d[time > 365*10,]) +
-  geom_histogram(aes(value,after_stat(density),fill=variable,color=variable,alpha=0.75)) +
-  facet_wrap(. ~ variable,scales="free")+
-  guides(alpha=FALSE)+
-  theme_bw()
+IC_MASH <- c(
+  SH = IC$y0[["SH"]], 
+  IH = IC$y0[["IH"]] + IC$y0[["EH"]],
+  SV = IC$y0[["SV"]],
+  IV = IC$y0[["IV"]] + IC$y0[["EV"]]
+)
 
-out_b <- rbind(out,out_d)
+system.time(dis_out <- run_miniMASH_exactbm(
+  parameters = IC$parameters,
+  y0 = round(IC_MASH),
+  dt = 5,
+  tmax = tmax,
+  verbose = FALSE
+))
 
-ggplot(data = out_b[time > 365*10 & !(variable %in% c("EH","EV")),]) +
-  geom_histogram(aes(value,after_stat(density),fill=type),alpha=0.5,position="identity",color=grey(0.25,0.75)) +
-  facet_wrap(. ~ variable,scales="free")+
-  theme_bw()
+dis_compare <- as.data.frame(rbind(
+  SIM = c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])),
+  DDE = IC$y0,
+  DIFF = abs(c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
+))
 
+dis_compare <- cbind(dis_compare, MOSY = c(sum(colMeans(dis_out$mosquito[,2:4])),sum(IC$y0[4:6]),NaN))
+dis_compare$MOSY[3] <- abs(dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
+
+dis_compare <- cbind(dis_compare, HUM = c(sum(colMeans(dis_out$human[,2:4])),sum(IC$y0[1:3]),NaN))
+dis_compare$HUM[3] <- abs(dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
+
+dis_compare

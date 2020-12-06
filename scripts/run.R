@@ -8,7 +8,7 @@ library(ggplot2)
 library(deSolve)
 library(Rcpp)
 
-Rcpp::sourceCpp(here::here("r-src/aggregated.cpp"))
+Rcpp::sourceCpp(here::here("r-src/noexposed/aggregated.cpp"))
 Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
 source(here::here("r-src/deterministic.R"))
 
@@ -66,7 +66,7 @@ plot_agg <- ggplot(data = out) +
 
 ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde.tiff"),device = "tiff",width = 14,height = 8)
 
-Rcpp::sourceCpp(here::here("r-src/disaggregated-set.cpp"),rebuild = TRUE)
+Rcpp::sourceCpp(here::here("r-src/noexposed/disaggregated.cpp"),rebuild = TRUE)
 
 full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
 
