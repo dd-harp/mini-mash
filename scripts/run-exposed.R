@@ -133,14 +133,14 @@ system.time(dis_out <- run_miniMASH_exactbm(
 dis_compare <- as.data.frame(rbind(
   SIM = c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])),
   DDE = IC$y0,
-  DIFF = abs(c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
+  DIFF = (c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
 ))
 
 dis_compare <- cbind(dis_compare, MOSY = c(sum(colMeans(dis_out$mosquito[,2:4])),sum(IC$y0[4:6]),NaN))
-dis_compare$MOSY[3] <- abs(dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
+dis_compare$MOSY[3] <- (dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
 
 dis_compare <- cbind(dis_compare, HUM = c(sum(colMeans(dis_out$human[,2:4])),sum(IC$y0[1:3]),NaN))
-dis_compare$HUM[3] <- abs(dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
+dis_compare$HUM[3] <- (dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
 
 dis_compare
 
@@ -188,13 +188,13 @@ system.time(dis_out <- run_miniMASH_exactbm(
 dis_compare <- as.data.frame(rbind(
   SIM = c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])),
   DDE = IC$y0,
-  DIFF = abs(c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
+  DIFF = (c(colMeans(dis_out$human[,2:4]),colMeans(dis_out$mosquito[,2:4])) - IC$y0)
 ))
 
 dis_compare <- cbind(dis_compare, MOSY = c(sum(colMeans(dis_out$mosquito[,2:4])),sum(IC$y0[4:6]),NaN))
-dis_compare$MOSY[3] <- abs(dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
+dis_compare$MOSY[3] <- (dis_compare$MOSY[[1]] - dis_compare$MOSY[[2]])
 
 dis_compare <- cbind(dis_compare, HUM = c(sum(colMeans(dis_out$human[,2:4])),sum(IC$y0[1:3]),NaN))
-dis_compare$HUM[3] <- abs(dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
+dis_compare$HUM[3] <- (dis_compare$HUM[[1]] - dis_compare$HUM[[2]])
 
 dis_compare
