@@ -165,8 +165,8 @@ void run_mosypop(mosypop_ptr& mosypop, double t0, double dt){
     if(R::runif(0.,1.) < exp(-haz)){
       // queue the future EIP completion event, which will happen on this time step (or next)
       mosypop->M_inf.emplace(btime + mosypop->EIP);
-      mosypop->E += 1;
       mosypop->S -= 1;
+      mosypop->E += 1;
     }
 
     // pop that bite off
