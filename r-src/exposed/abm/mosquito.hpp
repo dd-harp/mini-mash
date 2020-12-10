@@ -8,56 +8,79 @@
 -------------------------------------------------------------------------------- */
 
 #include <list>
+#include <vector>
+#include <memory>
+#include <functional>
+#include <unordered_map>
 
 #include <Rcpp.h>
 
+#include "shared.hpp"
+
+// forward declare the mosy pop struct
+typedef struct mosquito_pop mosquito_pop;
 
 // a single skeeter (syringe with wings)
+// mosquito object MUST have a shorter lifespan than the mosquito_pop one.
 typedef struct mosquito {
-  double tnow;
+
+  int id;
+  std::vector<double> thist;
+  std::vector<char>   shist;
+
+  bool atrisk; // does the mosy need to accum haz?
+
   double tnext;
-  double tdie;
-  char state;
-  char statenext;
+  char snext;
+
+  double tdie; // time I will die
+
+  mosquito_pop* pop; // pointer to population struct
+
 } mosquito;
 
-// using
+// they're gonna be unique pointers
+using mosquito_uptr = std::unique_ptr<mosquito>;
 
-typedef struct mosypop_str {
 
-  std::list<mosquito> mosypop;
 
-  // history tracking
-  std::vector<double> t_hist;
-  std::vector<double> S_hist;
-  std::vector<double> E_hist;
-  std::vector<double> I_hist;
 
-  double tnow;
+struct mosquito_pop {
 
-  // bites when H->M transmission occured
-  queue H2M_bites;
-
-  // when the resulting infection in M will manifest
-  queue M_inf;
+  // the population of living mosquitoes
+  std::list<mosquito_uptr> pop;
 
   // parameters
   double g;
   double EIP;
   double lambda;
 
-  // elements for MNRM of internal mosy dynamics
-  std::array<double,5> delta_t{infinity};
-  std::array<double,4> Pk{0.};
-  std::array<double,4> Tk{0.};
-  std::array<double,4> ak{0.};
+  // Iv trace
+  double Iv_time;
 
-  // integrated susceptible (Sv) biting over [t0,t0+dt)
-  // integrated infectious (Iv) biting over [t0,t0+dt)
-  queue_trace Sv_trace;
-  queue_trace Iv_trace;
+  // history
+  std::vector<hist_elem> hist;
 
-  mosypop_str(){Rcpp::Rcout << "'mosypop_str' ctor called at " << this << std::endl;};
-  ~mosypop_str(){Rcpp::Rcout << "'mosypop_str' dtor called at " << this << std::endl;};
+};
 
-} mosypop_str;
+// pointer to the pop
+using mosquito_pop_uptr = std::unique_ptr<mosquito_pop>;
+
+
+// make a skeeter
+mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double tnow);
+
+void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt);
+
+// simulate a skeeter
+void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt);
+
+// this is what the bloodmeal module will use to push bites onto Sv
+void push_H2M_bite(mosquito_uptr& mosy, double btime);
+
+// state machine
+void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt);
+
+void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt);
+
+void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt);

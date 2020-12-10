@@ -1,10 +1,14 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <iostream>
 
 #include <Rcpp.h>
 
+// [[Rcpp::depends(BH)]]
 // [[Rcpp::plugins(cpp14)]]  
+
+#include <boost/icl/interval_map.hpp>
 
 
 struct elem {
@@ -47,4 +51,16 @@ void test(){
   for(int i=0; i<vec.size(); i++){
     Rcpp::Rcout << "elem i: " << i << ", t: " << vec[i].t << ", k: " << vec[i].k << " --- \n";
   }
+}
+
+// [[Rcpp::export]]
+void test_icl(const Rcpp::NumericVector& input){
+  boost::icl::interval_map<double, int> mymap;
+  for(int i=0; i<input.size()/2; i++){
+    mymap += std::make_pair(
+      boost::icl::continuous_interval<double>(input[i],input[i+1]),
+      1
+    );
+  }
+  Rcpp::Rcout << "the map: " << mymap << " --- \n";
 }
