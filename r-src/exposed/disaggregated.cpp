@@ -442,7 +442,7 @@ void run_humanpop(humanpop_ptr& humanpop, double t0, double dt){
       humanpop->I += 1;
       humanpop->H_inf.erase(humanpop->H_inf.begin());
     } else {
-      std::string msg("invalid minimum element in 'run_mosypop': " + std::to_string(mu));
+      std::string msg("invalid minimum element in 'run_humanpop': " + std::to_string(mu));
       Rcpp::stop(msg);
     }
 

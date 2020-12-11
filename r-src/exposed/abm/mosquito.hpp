@@ -26,7 +26,6 @@ typedef struct mosquito_pop mosquito_pop;
 // mosquito object MUST have a shorter lifespan than the mosquito_pop one.
 typedef struct mosquito {
 
-  int id;
   std::vector<double> thist;
   std::vector<char>   shist;
 
@@ -38,6 +37,8 @@ typedef struct mosquito {
   double tdie; // time I will die
 
   mosquito_pop* pop; // pointer to population struct
+
+  ~mosquito();
 
 } mosquito;
 
@@ -57,6 +58,11 @@ struct mosquito_pop {
   double EIP;
   double lambda;
 
+  // for bloodmeal
+  double a;
+  double b;
+  double c;
+
   // Iv trace
   boost::icl::interval_map<double, int> Iv_trace;
 
@@ -70,7 +76,7 @@ using mosquito_pop_uptr = std::unique_ptr<mosquito_pop>;
 
 
 // make a skeeter
-mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double tnow);
+mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state);
 
 void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt);
 
@@ -78,7 +84,7 @@ void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt)
 void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt);
 
 // this is what the bloodmeal module will use to push bites onto Sv
-void push_H2M_bite(mosquito_uptr& mosy, double btime);
+void push_H2M_bite(mosquito_uptr& mosy, const double btime);
 
 // state machine
 void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt);

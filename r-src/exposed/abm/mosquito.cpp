@@ -16,8 +16,49 @@ static const std::unordered_map<char, std::function<void(mosquito_uptr&, const d
   {'D',sim_mosquito_D}
 };
 
+// mosquito dtor
+mosquito::~mosquito(){
+
+  assert(thist.size() >= 2); // at minimum, have {S,D}
+
+  int i{0};
+  pop->hist.emplace_back(hist_elem{thist[i],1,0,0});
+  for(i=1; i<thist.size(); i++){
+    if(shist[i-1] == 'S'){
+
+      // S2D
+      if(shist[i] == 'D'){
+        pop->hist.emplace_back(hist_elem{thist[i],-1,0,0});
+      // S2E
+      } else if(shist[i] == 'E'){
+        pop->hist.emplace_back(hist_elem{thist[i],-1,1,0});
+      }
+
+    } else if(shist[i-1] == 'E'){
+
+      // E2D
+      if(shist[i] == 'D'){
+        pop->hist.emplace_back(hist_elem{thist[i],0,-1,0});
+      // E2I
+      } else if(shist[i] == 'I'){
+        pop->hist.emplace_back(hist_elem{thist[i],0,-1,1});
+      }
+
+    } else if(shist[i-1] == 'I'){
+      assert(shist[i] == 'D');
+      pop->hist.emplace_back(hist_elem{thist[i],0,0,-1});
+    } else {
+      Rcpp::stop("illegal state detected, called from 'mosquito::~mosquito'");
+    }
+  }
+};
+
 // make a skeeter
-mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double tnow){
+mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state){
+
+  if(state != 'S' && state != 'I'){
+    Rcpp::stop("invalid initial state given to 'make_mosquito'");
+  }
 
   mosquito_uptr mosy = std::make_unique<mosquito>();
 
@@ -25,16 +66,17 @@ mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double tnow){
   mosy->thist.reserve(4);
   mosy->shist.reserve(4);
 
-  mosy->thist.emplace_back(tnow);
-  mosy->shist.emplace_back('S');
+  mosy->thist.emplace_back(bday);
+  mosy->shist.emplace_back(state);
 
+  // tells us that the bloodmeal needs to sample S2E events for this mosquito
   mosy->atrisk = true;
 
   // set pointer
   mosy->pop = mpop.get();
 
   // sample time of death now
-  mosy->tdie = tnow + R::rexp(1./mpop->g);
+  mosy->tdie = bday + R::rexp(1./mpop->g);
   mosy->tnext = mosy->tdie;
   mosy->snext = 'D';
 
@@ -59,7 +101,7 @@ void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt)
   int nborn = R::rpois(mpop->lambda) * dt;
   for(int i=0; i<nborn; i++){
     double bday = R::runif(t0,tmax);
-    mpop->pop.emplace_back(make_mosquito(mpop,bday));
+    mpop->pop.emplace_back(make_mosquito(mpop,bday,'S'));
   }
 
   // simulate all mosquitoes over [t0,t0+dt)
@@ -84,7 +126,7 @@ void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt){
 }
 
 // call this from bloodmeal
-void push_H2M_bite(mosquito_uptr& mosy, double btime){
+void push_H2M_bite(mosquito_uptr& mosy, const double btime){
 
   // infection event on a living mosquito
   if(mosy->shist.back() == 'S'){
@@ -153,7 +195,7 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     mosy->tnext = mosy->tdie;
     mosy->snext = 'D';
   } else {
-    mosy->tnext = tmax;
+    mosy->tnext = tmax + 2E-8;
     mosy->snext = 'I';
   }
 
@@ -179,7 +221,5 @@ void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt){
   mosy->shist.emplace_back('D');
 
   mosy->tnext = infinity;
-
-  // output the history
 
 };

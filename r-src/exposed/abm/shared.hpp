@@ -14,8 +14,8 @@ double infinity = std::numeric_limits<double>::infinity();
 // history data struct
 struct hist_elem {
   double t;
-  int S;
-  int E;
-  int I;
-  hist_elem(double t_, int S_, int E_, int I_) : t(t_), S(S_), E(E_), I(I_) {};
+  int dS;
+  int dE;
+  int dI;
+  hist_elem(double t_, int dS_, int dE_, int dI_) : t(t_), dS(dS_), dE(dE_), dI(dI_) {};
 };
