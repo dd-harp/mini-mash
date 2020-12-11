@@ -13,6 +13,8 @@
 #include <functional>
 #include <unordered_map>
 
+#include <boost/icl/interval_map.hpp>
+
 #include <Rcpp.h>
 
 #include "shared.hpp"
@@ -56,7 +58,7 @@ struct mosquito_pop {
   double lambda;
 
   // Iv trace
-  double Iv_time;
+  boost::icl::interval_map<double, int> Iv_trace;
 
   // history
   std::vector<hist_elem> hist;

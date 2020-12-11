@@ -157,17 +157,13 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     mosy->snext = 'I';
   }
 
-  // time the mosquito begins contributing to risk on humans
-  double risk_begin = std::max(t0,mosy->thist.back());
-  double risk_end = std::min(mosy->tdie,tmax);
-
-  
-  // accumluated Iv mosquito time to send to bloodmeal
-  // double Iv_time = std::min(mosy->tdie,tmax) - std::max(t0,mosy->thist.back());
-  // push Iv_time to the mosquito_pop
-
-  // check
-  // assert(Iv_time <= dt);
+  // push the interval this mosquito contributes to human risk to the trace
+  double risk_t0 = std::max(t0,mosy->thist.back());
+  double risk_t1 = std::min(mosy->tdie,tmax);
+  mosy->pop->Iv_trace += std::make_pair(
+    boost::icl::continuous_interval<double>(risk_t0,risk_t1),
+    1
+  );
 
 };
 
