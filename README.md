@@ -29,3 +29,8 @@ Because humans can't die, this one is easy. We construct the per-capita hazard t
 **Bloodmeal**
 
 For a susceptible mosquito, the bloodmeal module samples the 1st event time of an NHPP over TWICE.
+
+## random ramblings 
+
+* perhaps delays that are interruptable *require* an agent-based representation to be statistically exact? otherwise risk-set sampling is not possible. this would be an interesting result, since it would tell you how to structure the state space of the model from considerations that arise during conceptual model formulation.
+* Be more clear when we're doing ABM (individual) vs. integer stochastic (population).
