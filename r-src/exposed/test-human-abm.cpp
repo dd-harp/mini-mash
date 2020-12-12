@@ -54,11 +54,10 @@ Rcpp::List test_humans(
     for(auto& it : hpop->pop){
       if(it->snow == 'S'){
         assert(it->tnow >= clock);
-        double myrate = tmax - it->tnow;
-        myrate *= a*b*IV*(1./hpop->N);
+        double myrate = a*b*IV*(1./hpop->N) * ((clock+dt) - it->tnow);
         double myprob = 1. - exp(-myrate);
         if(R::runif(0.,1.) < myprob){
-          double btime = R::runif(it->tnow,tmax);
+          double btime = R::runif(it->tnow,(clock+dt));
           push_M2H_bites(it,btime);
         }
       }
@@ -88,9 +87,28 @@ Rcpp::List test_humans(
     id++;
   }
 
+  // process the actual history
+  std::sort(
+    hpop->hist.begin(),
+    hpop->hist.end(),
+    [](const hist_elem& a, const hist_elem& b){
+      return a.t < b.t;
+    }
+   );
+
+   int nn =hpop->hist.size();
+   Rcpp::NumericMatrix outagg(nn,4);
+   for(int i=0; i<nn; i++){
+     outagg.at(i,0) = hpop->hist[i].t;
+     outagg.at(i,1) = hpop->hist[i].dS;
+     outagg.at(i,2) = hpop->hist[i].dE;
+     outagg.at(i,3) = hpop->hist[i].dI;
+   };
+
   return Rcpp::List::create(
     Rcpp::Named("ids") = Rcpp::wrap(ids),
     Rcpp::Named("times") = Rcpp::wrap(times),
-    Rcpp::Named("states") = Rcpp::wrap(states)
+    Rcpp::Named("states") = Rcpp::wrap(states),
+    Rcpp::Named("agghist") =outagg
   );
 };
