@@ -9,7 +9,7 @@
 
 #include <limits>
 
-double infinity = std::numeric_limits<double>::infinity();
+static double infinity = std::numeric_limits<double>::infinity();
 
 // history data struct
 struct hist_elem {

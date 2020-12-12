@@ -31,9 +31,16 @@ typedef struct human {
   double tnext;
   char snext;
 
+  double I2S;
+
   human_pop* pop; // pointer to population struct
 
+  human();
   ~human();
+
+  // JUST FOR DEBUGGING
+  std::vector<double> thist;
+  std::vector<char> shist;
 
 } human;
 
@@ -60,12 +67,18 @@ struct human_pop {
   // history
   std::vector<hist_elem> hist;
 
+  human_pop();
+  ~human_pop();
+
 };
 
 // pointer to the pop
 using human_pop_uptr = std::unique_ptr<human_pop>;
 
 
+void run_humanpop(human_pop_uptr& hpop, const double t0, const double dt);
+
+void sim_human(human_uptr& hh, const double t0, const double dt);
 
 // make a person
 human_uptr make_human(human_pop_uptr& hpop, const char state);
