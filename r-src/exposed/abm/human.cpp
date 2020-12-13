@@ -20,11 +20,11 @@ human::~human(){
 
 // ctor and dtor
 human_pop::human_pop(){
-  Rcpp::Rcout << "calling human_pop ctor at " << this << "\n";
+  // Rcpp::Rcout << "calling human_pop ctor at " << this << "\n";
 }
 
 human_pop::~human_pop(){
-  Rcpp::Rcout << "calling human_pop dtor at " << this << "\n";
+  // Rcpp::Rcout << "calling human_pop dtor at " << this << "\n";
 }
 
 // simulate the population
