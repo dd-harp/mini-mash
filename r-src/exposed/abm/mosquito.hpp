@@ -78,7 +78,7 @@ using mosquito_pop_uptr = std::unique_ptr<mosquito_pop>;
 // make a skeeter
 mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state);
 
-void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt);
+void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt);
 
 // simulate a skeeter
 void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt);

@@ -20,9 +20,15 @@ static const std::unordered_map<char, std::function<void(mosquito_uptr&, const d
 mosquito::~mosquito(){
 
   assert(thist.size() >= 2); // at minimum, have {S,D}
+  assert(thist.size() == shist.size());
 
   int i{0};
-  pop->hist.emplace_back(hist_elem{thist[i],1,0,0});
+  if(shist[i] == 'S'){
+    pop->hist.emplace_back(hist_elem{thist[i],1,0,0});
+  } else {
+    pop->hist.emplace_back(hist_elem{thist[i],0,0,1});
+  }
+
   for(i=1; i<thist.size(); i++){
     if(shist[i-1] == 'S'){
 
@@ -51,12 +57,13 @@ mosquito::~mosquito(){
       Rcpp::stop("illegal state detected, called from 'mosquito::~mosquito'");
     }
   }
+  // Rcpp::Rcout << "DONE printing mosquito trajectory -- \n";
 };
 
 // make a skeeter
 mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state){
 
-  if(state != 'S' && state != 'I'){
+  if(state == 'E'){
     Rcpp::stop("invalid initial state given to 'make_mosquito'");
   }
 
@@ -70,7 +77,11 @@ mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const ch
   mosy->shist.emplace_back(state);
 
   // tells us that the bloodmeal needs to sample S2E events for this mosquito
-  mosy->atrisk = true;
+  if(state == 'S'){
+    mosy->atrisk = true;
+  } else {
+    mosy->atrisk = false;
+  }
 
   // set pointer
   mosy->pop = mpop.get();
@@ -86,7 +97,7 @@ mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const ch
 
 
 
-void sim_mosquito_pop(mosquito_pop_uptr& mpop, const double t0, const double dt){
+void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt){
 
   double tmax{t0+dt};
 
@@ -211,7 +222,11 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
 
 void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt){
 
-  if(mosy->shist.back() != 'S'){
+  // S2D
+  if(mosy->shist.back() == 'S'){
+    mosy->atrisk = true;
+  // other 2 D
+  } else {
     mosy->atrisk = false;
   }
 

@@ -73,6 +73,8 @@ Rcpp::List test_humans(
 
   };
 
+  Rcpp::Rcout << "--- end simulation ---\n";
+
   // return data
   std::vector<int> ids;
   std::vector<char> states;
