@@ -32,6 +32,7 @@ IH <- sum(abm_IC[c("EH","IH")])
 SV <- abm_IC[["SV"]]
 IV <- sum(abm_IC[c("EV","IV")])
 
+set.seed(342342L)
 abmout <- run_abm(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 5e3)
 hout <- abmout$human
 mout <- abmout$mosy
@@ -59,6 +60,17 @@ for(i in 1:nrow(mout)){
 }
 
 # compare
+colMeans(hhist[,2:4])
+unname(IC$y0[1:3])
+
+colMeans(mhist[,2:4])
+unname(IC$y0[c("SV","EV","IV")])
+
+Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm-sumout.cpp"),showOutput = FALSE)
+
+set.seed(342342L)
+abmoutsum <- run_abm_sumout(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 5e3)
+
 colMeans(hhist[,2:4])
 unname(IC$y0[1:3])
 
