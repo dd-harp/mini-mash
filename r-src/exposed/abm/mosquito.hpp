@@ -7,6 +7,9 @@
 #
 -------------------------------------------------------------------------------- */
 
+#ifndef MOSQUITO_HPP
+#define MOSQUITO_HPP
+
 #include <list>
 #include <vector>
 #include <memory>
@@ -90,5 +93,14 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt);
 
 void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt);
 
+// calculate the risk interval for this mosquito
+boost::icl::continuous_interval<double> getrisk_mosy(
+  mosquito_uptr& mosy,
+  const double t0,
+  const double dt
+);
+
 // this is what the bloodmeal module will use to push bites onto Sv
 void push_H2M_bite(mosquito_uptr& mosy, const double btime);
+
+#endif

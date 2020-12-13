@@ -7,6 +7,9 @@
 #
 -------------------------------------------------------------------------------- */
 
+#ifndef HUMAN_HPP
+#define HUMAN_HPP
+
 #include <list>
 #include <vector>
 #include <memory>
@@ -90,4 +93,6 @@ void sim_human_E(human_uptr& hh, const double t0, const double dt);
 void sim_human_I(human_uptr& hh, const double t0, const double dt);
 
 // call this from bloodmeal
-void push_M2H_bites(human_uptr& hh, const double btime);
+void push_M2H_bite(human_uptr& hh, const double btime);
+
+#endif

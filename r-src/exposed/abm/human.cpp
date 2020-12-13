@@ -177,7 +177,7 @@ void sim_human_I(human_uptr& hh, const double t0, const double dt){
 };
 
 // call this from bloodmeal
-void push_M2H_bites(human_uptr& hh, const double btime){
+void push_M2H_bite(human_uptr& hh, const double btime){
   assert(hh->snow == 'S');
   hh->tnext = btime;
   hh->snext = 'E';

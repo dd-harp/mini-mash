@@ -7,6 +7,9 @@
 #
 -------------------------------------------------------------------------------- */
 
+#ifndef SHARED_HPP
+#define SHARED_HPP
+
 #include <limits>
 
 static double infinity = std::numeric_limits<double>::infinity();
@@ -19,3 +22,5 @@ struct hist_elem {
   int dI;
   hist_elem(double t_, int dS_, int dE_, int dI_) : t(t_), dS(dS_), dE(dE_), dI(dI_) {};
 };
+
+#endif

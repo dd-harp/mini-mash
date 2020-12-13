@@ -58,7 +58,7 @@ Rcpp::List test_humans(
         double myprob = 1. - exp(-myrate);
         if(R::runif(0.,1.) < myprob){
           double btime = R::runif(it->tnow,(clock+dt));
-          push_M2H_bites(it,btime);
+          push_M2H_bite(it,btime);
         }
       }
     }

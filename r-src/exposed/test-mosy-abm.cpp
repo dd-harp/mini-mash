@@ -52,7 +52,7 @@ Rcpp::NumericMatrix test_mosy(
 
     run_mosypop(mpop,clock,dt);
 
-    // compute bloodmeals (M2H bites)
+    // compute bloodmeals (H2M bites)
     for(auto& it : mpop->pop){
       if(it->atrisk){
         double tend{clock+dt};

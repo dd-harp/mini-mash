@@ -30,8 +30,8 @@ mosquito::~mosquito(){
   }
 
   for(i=1; i<thist.size(); i++){
-    if(shist[i-1] == 'S'){
 
+    if(shist[i-1] == 'S'){
       // S2D
       if(shist[i] == 'D'){
         pop->hist.emplace_back(hist_elem{thist[i],-1,0,0});
@@ -39,9 +39,7 @@ mosquito::~mosquito(){
       } else if(shist[i] == 'E'){
         pop->hist.emplace_back(hist_elem{thist[i],-1,1,0});
       }
-
     } else if(shist[i-1] == 'E'){
-
       // E2D
       if(shist[i] == 'D'){
         pop->hist.emplace_back(hist_elem{thist[i],0,-1,0});
@@ -49,7 +47,6 @@ mosquito::~mosquito(){
       } else if(shist[i] == 'I'){
         pop->hist.emplace_back(hist_elem{thist[i],0,-1,1});
       }
-
     } else if(shist[i-1] == 'I'){
       assert(shist[i] == 'D');
       pop->hist.emplace_back(hist_elem{thist[i],0,0,-1});
@@ -237,4 +234,26 @@ void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt){
 
   mosy->tnext = infinity;
 
+};
+
+
+// calculate the risk interval for this mosquito
+boost::icl::continuous_interval<double> getrisk_mosy(
+  mosquito_uptr& mosy,
+  const double t0,
+  const double dt
+){
+  double tend{t0+dt};
+  double risk_t0, risk_t1;
+  if(mosy->shist.back() == 'D'){
+    risk_t0 = std::max(t0, mosy->thist.end()[-2]);
+    risk_t1 = mosy->thist.end()[-1];
+  } else if(mosy->shist.back() == 'S'){
+    risk_t0 = std::max(t0,mosy->thist.back());
+    risk_t1 = tend;
+  } else {
+    printf("illegal state: %c \n", mosy->shist.back());
+    Rcpp::stop("");
+  }
+  return boost::icl::continuous_interval<double>::right_open(risk_t0,risk_t1);
 };
