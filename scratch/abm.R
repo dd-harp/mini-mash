@@ -24,7 +24,47 @@ IC <- calc_equilibrium(NH = NH,X = X)
 # test abm
 # --------------------------------------------------------------------------------
 
-Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm.cpp"),showOutput = FALSE)
+# Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm.cpp"),showOutput = FALSE)
+# 
+# abm_IC <- round(IC$y0)
+# SH <- abm_IC[["SH"]]
+# IH <- sum(abm_IC[c("EH","IH")])
+# SV <- abm_IC[["SV"]]
+# IV <- sum(abm_IC[c("EV","IV")])
+# 
+# set.seed(342342L)
+# abmout <- run_abm(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 5e3)
+# hout <- abmout$human
+# mout <- abmout$mosy
+# 
+# init_ix <- which(hout[,1]<=0)
+# init <- colSums(hout[init_ix,-1])
+# hout <- hout[-init_ix,]
+# 
+# hhist <- matrix(data = 0,nrow = nrow(hout)+1,ncol = 4)
+# hhist[1,2:4] <- init
+# hhist[2:nrow(hhist),1] <- hout[,1]
+# for(i in 1:nrow(hout)){
+#   hhist[i+1,2:4] <- hhist[i,2:4] + hout[i,2:4]
+# }
+# 
+# init_ix <- which(mout[,1] <= 0)
+# init <- colSums(mout[init_ix,-1])
+# mout <- mout[-init_ix,]
+# 
+# mhist <- matrix(data = 0,nrow = nrow(mout)+1,ncol = 4)
+# mhist[1,2:4] <- init
+# mhist[2:nrow(mhist),1] <- mout[,1]
+# for(i in 1:nrow(mout)){
+#   mhist[i+1,2:4] <- mhist[i,2:4] + mout[i,2:4]
+# }
+
+# # compare
+# colMeans(hhist[,2:4])
+# unname(IC$y0[1:3])
+# 
+# colMeans(mhist[,2:4])
+# unname(IC$y0[c("SV","EV","IV")])
 
 abm_IC <- round(IC$y0)
 SH <- abm_IC[["SH"]]
@@ -32,44 +72,10 @@ IH <- sum(abm_IC[c("EH","IH")])
 SV <- abm_IC[["SV"]]
 IV <- sum(abm_IC[c("EV","IV")])
 
-set.seed(342342L)
-abmout <- run_abm(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 5e3)
-hout <- abmout$human
-mout <- abmout$mosy
-
-init_ix <- which(hout[,1]<=0)
-init <- colSums(hout[init_ix,-1])
-hout <- hout[-init_ix,]
-
-hhist <- matrix(data = 0,nrow = nrow(hout)+1,ncol = 4)
-hhist[1,2:4] <- init
-hhist[2:nrow(hhist),1] <- hout[,1]
-for(i in 1:nrow(hout)){
-  hhist[i+1,2:4] <- hhist[i,2:4] + hout[i,2:4]
-}
-
-init_ix <- which(mout[,1] <= 0)
-init <- colSums(mout[init_ix,-1])
-mout <- mout[-init_ix,]
-
-mhist <- matrix(data = 0,nrow = nrow(mout)+1,ncol = 4)
-mhist[1,2:4] <- init
-mhist[2:nrow(mhist),1] <- mout[,1]
-for(i in 1:nrow(mout)){
-  mhist[i+1,2:4] <- mhist[i,2:4] + mout[i,2:4]
-}
-
-# compare
-colMeans(hhist[,2:4])
-unname(IC$y0[1:3])
-
-colMeans(mhist[,2:4])
-unname(IC$y0[c("SV","EV","IV")])
-
-Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm-sumout.cpp"),showOutput = FALSE)
+Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm.cpp"),showOutput = FALSE)
 
 # set.seed(342342L)
-abmoutsum <- run_abm_sumout(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 5e3)
+abmoutsum <- run_abm_sumout(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 1e4)
 
 colMeans(abmoutsum$human[,2:4])
 IC$y0[1:3]
