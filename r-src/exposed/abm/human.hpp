@@ -25,7 +25,11 @@
 // forward declare the mosy pop struct
 typedef struct human_pop human_pop;
 
-// human object MUST have a shorter lifespan than the human_pop one.
+
+/* --------------------------------------------------------------------------------
+#   individual human
+-------------------------------------------------------------------------------- */
+
 typedef struct human {
 
   double tnow;
@@ -38,20 +42,17 @@ typedef struct human {
 
   human_pop* pop; // pointer to population struct
 
-  human();
-  ~human();
-
-  // JUST FOR DEBUGGING
-  std::vector<double> thist;
-  std::vector<char> shist;
+  human(){};
+  ~human(){};
 
 } human;
 
-// they're gonna be unique pointers
 using human_uptr = std::unique_ptr<human>;
 
 
-
+/* --------------------------------------------------------------------------------
+#   population
+-------------------------------------------------------------------------------- */
 
 struct human_pop {
 
@@ -70,21 +71,32 @@ struct human_pop {
   // history
   std::vector<hist_elem> hist;
 
-  human_pop();
-  ~human_pop();
+  human_pop(){};
+  ~human_pop(){};
 
 };
 
-// pointer to the pop
 using human_pop_uptr = std::unique_ptr<human_pop>;
 
 
+/* --------------------------------------------------------------------------------
+#   population functions
+-------------------------------------------------------------------------------- */
+
+human_pop_uptr make_humanpop(const int SH, const int IH, const Rcpp::NumericVector& parameters);
+
 void run_humanpop(human_pop_uptr& hpop, const double t0, const double dt);
 
-void sim_human(human_uptr& hh, const double t0, const double dt);
+Rcpp::NumericMatrix gethist_humanpop(const int SH, const int IH, human_pop_uptr& hpop);
 
-// make a person
+
+/* --------------------------------------------------------------------------------
+#   individual functions
+-------------------------------------------------------------------------------- */
+
 human_uptr make_human(human_pop_uptr& hpop, const char state);
+
+void sim_human(human_uptr& hh, const double t0, const double dt);
 
 void sim_human_S(human_uptr& hh, const double t0, const double dt);
 

@@ -9,32 +9,98 @@
 
 #include "human.hpp"
 
-// ctor and dtor
-human::human(){
-  // Rcpp::Rcout << "calling human ctor at " << this << "\n";
-}
 
-human::~human(){
-  // Rcpp::Rcout << "calling human dtor at " << this << "\n";
-}
+/* --------------------------------------------------------------------------------
+#   population functions
+-------------------------------------------------------------------------------- */
 
-// ctor and dtor
-human_pop::human_pop(){
-  // Rcpp::Rcout << "calling human_pop ctor at " << this << "\n";
-}
+human_pop_uptr make_humanpop(
+  const int SH,
+  const int IH,
+  const Rcpp::NumericVector& parameters
+){
 
-human_pop::~human_pop(){
-  // Rcpp::Rcout << "calling human_pop dtor at " << this << "\n";
-}
+  human_pop_uptr hpop = std::make_unique<human_pop>();
 
-// simulate the population
-void run_humanpop(human_pop_uptr& hpop, const double t0, const double dt){
+  hpop->N = SH + IH;
+  hpop->r = parameters["r"];
+  hpop->LEP = parameters["LEP"];
+
+  int i;
+  for(i=0; i<SH; i++){
+    hpop->pop.emplace_back(make_human(hpop,'S'));
+  }
+  for(i=0; i<IH; i++){
+    hpop->pop.emplace_back(make_human(hpop,'I'));
+  }
+
+  return hpop;
+};
+
+
+void run_humanpop(
+  human_pop_uptr& hpop,
+  const double t0,
+  const double dt
+){
+
   // simulate all humans over [t0,t0+dt)
   for(auto& hh : hpop->pop){
     sim_human(hh,t0,dt);
   }
 
 };
+
+Rcpp::NumericMatrix gethist_humanpop(
+  const int SH,
+  const int IH,
+  human_pop_uptr& hpop
+){
+
+  std::sort(
+    hpop->hist.begin(),
+    hpop->hist.end(),
+    [](const hist_elem& a, const hist_elem& b){
+      return a.t < b.t;
+    }
+  );
+
+  auto it_h = std::find_if(
+    hpop->hist.begin(),
+    hpop->hist.end(),
+    [](const hist_elem& elem){
+      return elem.t > std::numeric_limits<double>::epsilon();
+    }
+  );
+
+  int nh = std::distance(it_h,hpop->hist.end());
+  Rcpp::NumericMatrix hhist(nh+1,4);
+  Rcpp::colnames(hhist) = Rcpp::CharacterVector::create("time","SH","EH","IH");
+  int h_ix{0};
+  hhist.at(h_ix,0) = 0.;
+  hhist.at(h_ix,1) = SH;
+  hhist.at(h_ix,2) = 0.;
+  hhist.at(h_ix,3) = IH;
+  h_ix++;
+
+  while(it_h != hpop->hist.end()){
+
+    hhist.at(h_ix,0) = it_h->t;
+    hhist.at(h_ix,1) = hhist.at(h_ix-1,1) + it_h->dS;
+    hhist.at(h_ix,2) = hhist.at(h_ix-1,2) + it_h->dE;
+    hhist.at(h_ix,3) = hhist.at(h_ix-1,3) + it_h->dI;
+
+    h_ix++;
+    it_h++;
+  }
+
+  return hhist;
+};
+
+
+/* --------------------------------------------------------------------------------
+#   individual functions
+-------------------------------------------------------------------------------- */
 
 // simulate 1 human
 void sim_human(human_uptr& hh, const double t0, const double dt){
@@ -85,10 +151,6 @@ human_uptr make_human(human_pop_uptr& hpop, const char state){
     Rcpp::stop("invalid initial state given to 'make_human'");
   }
 
-  // JUST FOR DEBUGGING
-  hh->thist.push_back(hh->tnow);
-  hh->shist.push_back(hh->snow);
-
   return hh;
 };
 
@@ -102,10 +164,6 @@ void sim_human_S(human_uptr& hh, const double t0, const double dt){
   if(hh->snow == 'I'){
     hh->snow = 'S';
     hh->pop->hist.emplace_back(hist_elem{hh->tnow,1,0,-1});
-
-    // JUST FOR DEBUGGING
-    hh->thist.push_back(hh->tnow);
-    hh->shist.push_back(hh->snow);
   }
 
   // queue S2S (so that we can accumulate infection hazard on each step properly)
@@ -121,10 +179,6 @@ void sim_human_E(human_uptr& hh, const double t0, const double dt){
   hh->tnow = hh->tnext;
   hh->snow = 'E';
   hh->pop->hist.emplace_back(hist_elem{hh->tnow,-1,1,0});
-
-  // JUST FOR DEBUGGING
-  hh->thist.push_back(hh->tnow);
-  hh->shist.push_back(hh->snow);
 
   // queue next transition (E2I)
   double E2I = hh->tnow + hh->pop->LEP;
@@ -148,10 +202,6 @@ void sim_human_I(human_uptr& hh, const double t0, const double dt){
     risk_t0 = hh->tnow;
 
     hh->I2S = hh->tnow + R::rexp(1./hh->pop->r);
-
-    // JUST FOR DEBUGGING
-    hh->thist.push_back(hh->tnow);
-    hh->shist.push_back(hh->snow);
 
   } else {
     risk_t0 = t0;

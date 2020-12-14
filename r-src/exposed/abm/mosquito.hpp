@@ -25,8 +25,11 @@
 // forward declare the mosy pop struct
 typedef struct mosquito_pop mosquito_pop;
 
-// a single skeeter (syringe with wings)
-// mosquito object MUST have a shorter lifespan than the mosquito_pop one.
+
+/* --------------------------------------------------------------------------------
+#   syringe with wings
+-------------------------------------------------------------------------------- */
+
 typedef struct mosquito {
 
   std::vector<double> thist;
@@ -45,11 +48,12 @@ typedef struct mosquito {
 
 } mosquito;
 
-// they're gonna be unique pointers
 using mosquito_uptr = std::unique_ptr<mosquito>;
 
 
-
+/* --------------------------------------------------------------------------------
+#   all the skeeters
+-------------------------------------------------------------------------------- */
 
 struct mosquito_pop {
 
@@ -74,19 +78,30 @@ struct mosquito_pop {
 
 };
 
-// pointer to the pop
 using mosquito_pop_uptr = std::unique_ptr<mosquito_pop>;
 
+
+/* --------------------------------------------------------------------------------
+#   population functions
+-------------------------------------------------------------------------------- */
+
+mosquito_pop_uptr make_mosypop(const int SV, const int IV, const Rcpp::NumericVector& parameters);
+
+void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt);
+
+Rcpp::NumericMatrix gethist_mosypop(const int SV, const int IV, mosquito_pop_uptr& mpop);
+
+
+/* --------------------------------------------------------------------------------
+#   individual functions
+-------------------------------------------------------------------------------- */
 
 // make a skeeter
 mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state);
 
-void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt);
-
 // simulate a skeeter
 void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt);
 
-// state machine
 void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt);
 
 void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt);

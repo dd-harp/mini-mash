@@ -16,6 +16,11 @@ static const std::unordered_map<char, std::function<void(mosquito_uptr&, const d
   {'D',sim_mosquito_D}
 };
 
+
+/* --------------------------------------------------------------------------------
+#   syringe with wings
+-------------------------------------------------------------------------------- */
+
 // mosquito dtor
 mosquito::~mosquito(){
 
@@ -57,7 +62,112 @@ mosquito::~mosquito(){
   // Rcpp::Rcout << "DONE printing mosquito trajectory -- \n";
 };
 
-// make a skeeter
+
+/* --------------------------------------------------------------------------------
+#   population functions
+-------------------------------------------------------------------------------- */
+
+mosquito_pop_uptr make_mosypop(
+  const int SV,
+  const int IV,
+  const Rcpp::NumericVector& parameters
+){
+
+  mosquito_pop_uptr mpop = std::make_unique<mosquito_pop>();
+
+  mpop->g = parameters["g"];
+  mpop->EIP = parameters["EIP"];
+  mpop->lambda = parameters["lambda"];
+
+  int i;
+  for(i=0; i<SV; i++){
+    mpop->pop.emplace_back(make_mosquito(mpop,0.,'S'));
+  }
+  for(i=0; i<IV; i++){
+    mpop->pop.emplace_back(make_mosquito(mpop,0.,'I'));
+  }
+
+  return mpop;
+};
+
+
+void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt){
+
+  double tmax{t0+dt};
+
+  // remove dead mosquitoes
+  mpop->pop.remove_if(
+    [](const mosquito_uptr& mm) -> bool {
+      return mm->shist.back() == 'D';
+    }
+  );
+
+  // mosquitoes emerge
+  int nborn = R::rpois(mpop->lambda) * dt;
+  for(int i=0; i<nborn; i++){
+    double bday = R::runif(t0,tmax);
+    mpop->pop.emplace_back(make_mosquito(mpop,bday,'S'));
+  }
+
+  // simulate all mosquitoes over [t0,t0+dt)
+  for(auto& mm : mpop->pop){
+    sim_mosquito(mm,t0,dt);
+  }
+
+};
+
+
+Rcpp::NumericMatrix gethist_mosypop(
+  const int SV,
+  const int IV,
+  mosquito_pop_uptr& mpop
+){
+
+  std::sort(
+    mpop->hist.begin(),
+    mpop->hist.end(),
+    [](const hist_elem& a, const hist_elem& b){
+      return a.t < b.t;
+  }
+  );
+
+  auto it_m = std::find_if(
+    mpop->hist.begin(),
+    mpop->hist.end(),
+    [](const hist_elem& elem){
+      return elem.t > std::numeric_limits<double>::epsilon();
+    }
+  );
+
+  int nm = std::distance(it_m,mpop->hist.end());
+  Rcpp::NumericMatrix mhist(nm+1,4);
+  Rcpp::colnames(mhist) = Rcpp::CharacterVector::create("time","SV","EV","IV");
+  int m_ix{0};
+  mhist.at(m_ix,0) = 0.;
+  mhist.at(m_ix,1) = SV;
+  mhist.at(m_ix,2) = 0.;
+  mhist.at(m_ix,3) = IV;
+  m_ix++;
+
+  while(it_m != mpop->hist.end()){
+
+    mhist.at(m_ix,0) = it_m->t;
+    mhist.at(m_ix,1) = mhist.at(m_ix-1,1) + it_m->dS;
+    mhist.at(m_ix,2) = mhist.at(m_ix-1,2) + it_m->dE;
+    mhist.at(m_ix,3) = mhist.at(m_ix-1,3) + it_m->dI;
+
+    m_ix++;
+    it_m++;
+  }
+
+  return mhist;
+};
+
+
+/* --------------------------------------------------------------------------------
+#   individual functions
+-------------------------------------------------------------------------------- */
+
 mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state){
 
   if(state == 'E'){
@@ -92,35 +202,6 @@ mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const ch
 };
 
 
-
-
-void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt){
-
-  double tmax{t0+dt};
-
-  // remove dead mosquitoes
-  mpop->pop.remove_if(
-    [](const mosquito_uptr& mm) -> bool {
-      return mm->shist.back() == 'D';
-    }
-  );
-
-  // mosquitoes emerge
-  int nborn = R::rpois(mpop->lambda) * dt;
-  for(int i=0; i<nborn; i++){
-    double bday = R::runif(t0,tmax);
-    mpop->pop.emplace_back(make_mosquito(mpop,bday,'S'));
-  }
-
-  // simulate all mosquitoes over [t0,t0+dt)
-  for(auto& mm : mpop->pop){
-    sim_mosquito(mm,t0,dt);
-  }
-
-};
-
-
-
 // simulate a skeeter
 void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt){
 
@@ -133,37 +214,7 @@ void sim_mosquito(mosquito_uptr& mosy, const double t0, const double dt){
 
 }
 
-// call this from bloodmeal
-void push_H2M_bite(mosquito_uptr& mosy, const double btime){
 
-  // infection event on a living mosquito
-  if(mosy->shist.back() == 'S'){
-    mosy->tnext = btime;
-    mosy->snext = 'E';
-
-  // infection event on a mosquito that died *after* infection
-  } else if(mosy->shist.back() == 'D'){
-    auto it_t = mosy->thist.end();
-    it_t--;
-    mosy->thist.insert(it_t, btime);
-
-    auto it_s = mosy->shist.end();
-    it_s--;
-    mosy->shist.insert(it_s, 'E');
-  } else {
-    Rcpp::stop("push_H2M_bite error: mosquito in illegal state E or I");
-  }
-
-}
-
-
-
-
-
-
-
-
-// state machine
 void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt){
 
   // change state
@@ -183,6 +234,7 @@ void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt){
   }
 
 };
+
 
 void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
 
@@ -216,6 +268,7 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
   );
 
 };
+
 
 void sim_mosquito_D(mosquito_uptr& mosy, const double t0, const double dt){
 
@@ -257,3 +310,27 @@ boost::icl::continuous_interval<double> getrisk_mosy(
   }
   return boost::icl::continuous_interval<double>::right_open(risk_t0,risk_t1);
 };
+
+
+// call this from bloodmeal
+void push_H2M_bite(mosquito_uptr& mosy, const double btime){
+
+  // infection event on a living mosquito
+  if(mosy->shist.back() == 'S'){
+    mosy->tnext = btime;
+    mosy->snext = 'E';
+
+  // infection event on a mosquito that died *after* infection
+  } else if(mosy->shist.back() == 'D'){
+    auto it_t = mosy->thist.end();
+    it_t--;
+    mosy->thist.insert(it_t, btime);
+
+    auto it_s = mosy->shist.end();
+    it_s--;
+    mosy->shist.insert(it_s, 'E');
+  } else {
+    Rcpp::stop("push_H2M_bite error: mosquito in illegal state E or I");
+  }
+
+}
