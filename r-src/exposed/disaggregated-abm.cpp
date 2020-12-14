@@ -18,7 +18,7 @@
 #include "abm/shared.hpp"
 
 // [[Rcpp::export]]
-Rcpp::List run_abm_sumout(
+Rcpp::List run_miniMASH_abm(
   const int SV, const int IV,
   const int SH, const int IH,
   const Rcpp::NumericVector& parameters,

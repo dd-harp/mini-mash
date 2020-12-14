@@ -22,14 +22,12 @@ void bloodmeal(
   double c = parameters["c"];
   double Nh = hpop->N;
 
-  double tmax{t0+dt};
-
   // compute M2H bloodmeals (human inf: spz enter bloodstream)
   for(auto& hh : hpop->pop){
     if(hh->snow == 'S'){
       // get my risk interval, and the Iv trace over that interval
       boost::icl::interval_map<double, int> Iv_trace(mpop->Iv_trace);
-      boost::icl::continuous_interval<double> risk_int = boost::icl::continuous_interval<double>::right_open(hh->tnow,tmax);
+      boost::icl::continuous_interval<double> risk_int = getrisk_human(hh,t0,dt);
       Iv_trace &= risk_int;
       // calculate piecewise risk for my interval
       for(auto it = Iv_trace.begin(); it != Iv_trace.end(); it++){

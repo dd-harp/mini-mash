@@ -226,6 +226,18 @@ void sim_human_I(human_uptr& hh, const double t0, const double dt){
 
 };
 
+
+// calculate the risk interval for this human
+boost::icl::continuous_interval<double> getrisk_human(
+  human_uptr& hh,
+  const double t0,
+  const double dt
+){
+  double tmax{t0+dt};
+  return boost::icl::continuous_interval<double>::right_open(hh->tnow,tmax);
+};
+
+
 // call this from bloodmeal
 void push_M2H_bite(human_uptr& hh, const double btime){
   assert(hh->snow == 'S');

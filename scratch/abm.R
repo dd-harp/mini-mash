@@ -10,6 +10,7 @@ library(data.table)
 library(ggplot2)
 library(deSolve)
 library(Rcpp)
+library(matrixStats)
 
 source(here::here("r-src/deterministic-exposed.R"))
 
@@ -75,13 +76,21 @@ IV <- sum(abm_IC[c("EV","IV")])
 Rcpp::sourceCpp(here::here("r-src/exposed/disaggregated-abm.cpp"),showOutput = FALSE)
 
 # set.seed(342342L)
-abmoutsum <- run_abm_sumout(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 1e4)
+abmoutsum <- run_miniMASH_abm(SV = SV,IV = IV,SH = SH,IH = IH,parameters = IC$parameters,dt = 5,tmax = 1e4)
 
 colMeans(abmoutsum$human[,2:4])
 IC$y0[1:3]
 
 colMeans(abmoutsum$mosy[,2:4])
 IC$y0[c("SV","EV","IV")]
+
+
+colWeightedMeans(x = abmoutsum$human[-nrow(abmoutsum$human),-1],w = diff(abmoutsum$human)[,"time"])
+IC$y0[1:3]
+
+colWeightedMeans(x = abmoutsum$mosy[-nrow(abmoutsum$mosy),-1],w = diff(abmoutsum$mosy)[,"time"])
+IC$y0[4:6]
+
 
 #  --------------------------------------------------------------------------------
 # test humans
