@@ -8,12 +8,12 @@ library(ggplot2)
 
 
 TWICE <- 5
-nborn <- 5
+nborn <- 20
 lambda <- nborn/TWICE
 g <- 1/10
 
 
-S0 <- 6
+S0 <- 15
 
 S0_mosy <- data.frame(
   enter = rep(0,S0),
@@ -92,6 +92,35 @@ for(i in 1:(nrow(ensemble_trace)-1)){
 }
 ensemble_trace_df <- ensemble_trace_df[-1,]
 ensemble_trace_vert_df <- ensemble_trace_vert_df[-1,]
+
+# # calculate survival from population: KM estimator
+# pop_trace <- ensemble_trace
+# 
+# # t = t0
+# km_calc <- function(t0,pop_trace){
+#   
+#   surv <- matrix(0,nrow = 0,ncol = 2,dimnames = list(NULL,c("t","S(t)")))
+#   surv <- rbind(surv,c(t0,1))
+#   i <- 1
+#   
+#   devents <- grep(pattern = "dies",x = pop_trace$event)
+#   
+#   
+#   while(length(devents) > 0){
+#     Y <- pop_trace[devents[1]-1,"count"]
+#     dY <- Y - pop_trace[devents[1],"count"]
+#     t <- pop_trace[devents[1],"time"]
+#     inc <- 1 - (dY/Y)
+#     St <- surv[i,2] * inc
+#     
+#     surv <- rbind(surv,c(t,St))
+#     
+#     i <- i + 1
+#     devents <- devents[-1]
+#   }
+#   
+# }
+
 
 # plots
 plot_indiv <- ggplot(data = indiv_traces) +
