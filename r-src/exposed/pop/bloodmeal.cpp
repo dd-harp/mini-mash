@@ -68,13 +68,25 @@ void bloodmeal_H2M(
   t0 = std::get<1>(Sv_0);
 
   // right limit of interval
-  queue_tuple Sv_1 = *mpop->Sv_trace.begin();
-  queue_tuple Ih_1 = *hpop->Ih_trace.begin();
-  mpop->Sv_trace.erase(mpop->Sv_trace.begin());
-  hpop->Ih_trace.erase(hpop->Ih_trace.begin());
+  queue_tuple Sv_1;
+  if(!mpop->Sv_trace.empty()){
+    Sv_1 = *mpop->Sv_trace.begin();
+    mpop->Sv_trace.erase(mpop->Sv_trace.begin());
+    tnext[0] = std::get<1>(Sv_1);
+  } else {
+    Sv_1 = Sv_0;
+    tnext[0] = infinity;
+  }
 
-  tnext[0] = std::get<1>(Sv_1);
-  tnext[1] = std::get<1>(Ih_1);
+  queue_tuple Ih_1;
+  if(!hpop->Ih_trace.empty()){
+    Ih_1 = *hpop->Ih_trace.begin();
+    hpop->Ih_trace.erase(hpop->Ih_trace.begin());
+    tnext[1] = std::get<1>(Ih_1);
+  } else {
+    Ih_1 = Ih_0;
+    tnext[1] = infinity;
+  }
 
   // compute H2M point process over [t0,t0+dt)
   while(true){
@@ -182,13 +194,25 @@ void bloodmeal_M2H(
   t0 = std::get<1>(Iv_0);
 
   // right limit of interval
-  queue_tuple Iv_1 = *mpop->Iv_trace.begin();
-  queue_tuple Sh_1 = *hpop->Sh_trace.begin();
-  mpop->Iv_trace.erase(mpop->Iv_trace.begin());
-  hpop->Sh_trace.erase(hpop->Sh_trace.begin());
+  queue_tuple Iv_1;
+  if(!mpop->Iv_trace.empty()){
+    Iv_1 = *mpop->Iv_trace.begin();
+    mpop->Iv_trace.erase(mpop->Iv_trace.begin());
+    tnext[0] = std::get<1>(Iv_1);
+  } else {
+    Iv_1 = Iv_0;
+    tnext[0] = infinity;
+  }
 
-  tnext[0] = std::get<1>(Iv_1);
-  tnext[1] = std::get<1>(Sh_1);
+  queue_tuple Sh_1;
+  if(!hpop->Sh_trace.empty()){
+    Sh_1 = *hpop->Sh_trace.begin();
+    hpop->Sh_trace.erase(hpop->Sh_trace.begin());
+    tnext[1] = std::get<1>(Sh_1);
+  } else {
+    Sh_1 = Sh_0;
+    tnext[1] = infinity;
+  }
 
   // compute M2H point process over [t0,t0+dt)
   while(true){

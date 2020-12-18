@@ -42,3 +42,4 @@ hout <- hout[hout[,"time"] > 500, ]
 
 hmeans <- colWeightedMeans(x = hout[-nrow(hout),2:4],w = diff(hout[,"time"]))
 IC$y0[1:3]
+hmeans

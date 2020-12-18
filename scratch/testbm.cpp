@@ -51,6 +51,8 @@ Rcpp::List test_H2M(
     Ih_trace.emplace(queue_tuple(Ih_mat.at(i,0),Ih_mat.at(i,1)));
   }
 
+  Rcpp::Rcout << " --- size of Sv_trace: " << Sv_trace.size() << ", size of Ih_trace: " << Ih_trace.size() << " --- \n";
+
   // output
   std::vector<double> intensity;
   std::vector<double> left_lims;
@@ -81,16 +83,41 @@ Rcpp::List test_H2M(
   tl = std::get<1>(Sv_0);
 
   // right limit of interval
-  queue_tuple Sv_1 = *Sv_trace.begin();
-  queue_tuple Ih_1 = *Ih_trace.begin();
-  Sv_trace.erase(Sv_trace.begin());
-  Ih_trace.erase(Ih_trace.begin());
+  queue_tuple Sv_1;
+  if(!Sv_trace.empty()){
+    Rcpp::Rcout << "Sv_trace not empty, drawing Sv_1\n";
+    Sv_1 = *Sv_trace.begin();
+    Sv_trace.erase(Sv_trace.begin());
+    tnext[0] = std::get<1>(Sv_1);
+  } else {
+    Sv_1 = Sv_0;
+    tnext[0] = infinity;
+  }
 
-  tnext[0] = std::get<1>(Sv_1);
-  tnext[1] = std::get<1>(Ih_1);
+  queue_tuple Ih_1;
+  if(!Ih_trace.empty()){
+    Rcpp::Rcout << "Ih_trace not empty, drawing Ih_1\n";
+    Ih_1 = *Ih_trace.begin();
+    Ih_trace.erase(Ih_trace.begin());
+    tnext[1] = std::get<1>(Ih_1);
+  } else {
+    Ih_1 = Ih_0;
+    tnext[1] = infinity;
+  }
+
+  // queue_tuple Sv_1 = *Sv_trace.begin();
+  // queue_tuple Ih_1 = *Ih_trace.begin();
+  // Sv_trace.erase(Sv_trace.begin());
+  // Ih_trace.erase(Ih_trace.begin());
+  //
+  // tnext[0] = std::get<1>(Sv_1);
+  // tnext[1] = std::get<1>(Ih_1);
+  int ii{0};
 
   // compute H2M point process over [t0,t0+dt)
   while(true){
+    ii++;
+    Rcpp::Rcout << "\n\nBEGIN ITERATION " << ii << "\n";
 
     Rcpp::checkUserInterrupt();
 
@@ -100,7 +127,6 @@ Rcpp::List test_H2M(
     if( std::all_of(tnext.begin(),tnext.end(), [](const double y){return y == infinity;}) ){
 
       mu = -1; // sign to break
-
       tr = tmax;
 
     } else {
@@ -114,7 +140,7 @@ Rcpp::List test_H2M(
 
     }
 
-    Rcpp::Rcout << " --- evaluating trajectory over [" << tl << "," << tr << "), ";
+    Rcpp::Rcout << " --- next state change: " << mu << ", evaluating trajectory over [" << tl << "," << tr << "), ";
 
     double delta = tr - tl;
 
@@ -146,8 +172,9 @@ Rcpp::List test_H2M(
         Sv_1 = *Sv_trace.begin();
         Sv_trace.erase(Sv_trace.begin());
         tnext[0] = std::get<1>(Sv_1);
-
+        Rcpp::Rcout << "setting tnext[0] = Sv_1\n";
       } else {
+        Rcpp::Rcout << "setting tnext[0] = inf\n";
         tnext[0] = infinity;
       }
 
@@ -161,8 +188,9 @@ Rcpp::List test_H2M(
         Ih_1 = *Ih_trace.begin();
         Ih_trace.erase(Ih_trace.begin());
         tnext[1] = std::get<1>(Ih_1);
-
+        Rcpp::Rcout << "setting tnext[1] = Ih_1\n";
       } else {
+        Rcpp::Rcout << "setting tnext[1] = inf\n";
         tnext[1] = infinity;
       }
 
@@ -189,9 +217,9 @@ t0 <- 0
 dt <- 5
 NH <- 100
 Sv_mat <- matrix(data = c(
-  50,0,
-  49,2.3,
-  51,4.3
+  20,0,
+  21,2.3,
+  19,4.3
 ),ncol = 2,byrow = T)
 Ih_mat <- matrix(data = c(
   9,0,

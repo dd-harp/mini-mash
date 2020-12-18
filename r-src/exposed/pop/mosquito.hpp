@@ -58,8 +58,8 @@ typedef struct mosy_pop {
   queue_trace Sv_trace;
   queue_trace Iv_trace;
 
-  mosy_pop(){Rcpp::Rcout << "'mosy_pop' ctor called at " << this << std::endl;};
-  ~mosy_pop(){Rcpp::Rcout << "'mosy_pop' dtor called at " << this << std::endl;};
+  mosy_pop(){};
+  ~mosy_pop(){};
 
 } mosy_pop;
 

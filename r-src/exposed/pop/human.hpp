@@ -57,8 +57,8 @@ typedef struct human_pop {
   queue_trace Sh_trace;
   queue_trace Ih_trace;
 
-  human_pop(){Rcpp::Rcout << "'human_pop' ctor called at " << this << std::endl;};
-  ~human_pop(){Rcpp::Rcout << "'human_pop' dtor called at " << this << std::endl;};
+  human_pop(){};
+  ~human_pop(){};
 
 } human_pop;
 
