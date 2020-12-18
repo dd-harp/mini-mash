@@ -14,7 +14,7 @@
 #include "mosquito.hpp"
 #include "shared.hpp"
 
-
+// call this from the main loop
 void bloodmeal(
   mosy_pop_ptr& mpop,
   human_pop_ptr& hpop,
@@ -23,10 +23,24 @@ void bloodmeal(
   const Rcpp::NumericVector& parameters
 );
 
-void bloodmeal_old(
+// sample S->E events in mosquitoes
+void bloodmean_H2M(
   mosy_pop_ptr& mpop,
   human_pop_ptr& hpop,
-  const Rcpp::NumericVector& parameters
+  const double tmax,
+  const double a,
+  const double c,
+  const double NH
+);
+
+// sample S->E events in humans
+void bloodmean_M2H(
+  mosy_pop_ptr& mpop,
+  human_pop_ptr& hpop,
+  const double tmax,
+  const double a,
+  const double b,
+  const double NH
 );
 
 #endif
