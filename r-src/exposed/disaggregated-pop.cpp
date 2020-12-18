@@ -37,7 +37,7 @@ Rcpp::List run_miniMASH_pop(
     run_human_pop(hpop,clock,dt);
     run_mosy_pop(mpop,clock,dt);
 
-    bloodmeal(mpop,hpop,parameters);
+    bloodmeal(mpop,hpop,clock,dt,parameters);
 
     j++;
     if(j % 100 == 0){

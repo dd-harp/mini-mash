@@ -24,7 +24,7 @@ void bloodmeal(
 );
 
 // sample S->E events in mosquitoes
-void bloodmean_H2M(
+void bloodmeal_H2M(
   mosy_pop_ptr& mpop,
   human_pop_ptr& hpop,
   const double tmax,
@@ -34,7 +34,7 @@ void bloodmean_H2M(
 );
 
 // sample S->E events in humans
-void bloodmean_M2H(
+void bloodmeal_M2H(
   mosy_pop_ptr& mpop,
   human_pop_ptr& hpop,
   const double tmax,
