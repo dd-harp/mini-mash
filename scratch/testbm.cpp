@@ -114,7 +114,7 @@ Rcpp::List test_H2M(
 
     }
 
-    Rcpp::Rcout << " --- evaluating trajectory over [" << tl << "," << tr << ") --- \n";
+    Rcpp::Rcout << " --- evaluating trajectory over [" << tl << "," << tr << "), ";
 
     double delta = tr - tl;
 
@@ -124,6 +124,8 @@ Rcpp::List test_H2M(
 
     // intensity over [tl,tr)
     H2M_lambda = a * c * (IH/NH) * (SV - (double)H2M_tot) * delta;
+
+    Rcpp::Rcout << " intensity evaluated as: " << a << " * " << c << " * " << (IH/NH) << " * " << SV << " * " << delta << " --- \n";
 
     // sample bites
     H2M_count = R::rpois(H2M_lambda);
