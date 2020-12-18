@@ -13,16 +13,23 @@
 #include <limits>
 #include <set>
 
-#include <boost/icl/interval_map.hpp>
-
 // Inf
 static double infinity = std::numeric_limits<double>::infinity();
 
 // store events (earliest/smallest value on top)
 using queue = std::set<double,std::less<double>>;
 
-// interval map for piecewise trajectories on [t0,t0+dt)
-using interval_map = boost::icl::interval_map<double, int>;
+// data structure to pass traces
+using queue_tuple = std::tuple<double,double>; // 1st element is state, 2nd is time
+
+struct queue_comp {
+  bool operator() (const queue_tuple& a, const queue_tuple& b) const {
+    return std::get<1>(a) < std::get<1>(b);
+  }
+};
+
+using queue_trace = std::set<queue_tuple,queue_comp>;
+
 
 // history data struct
 struct hist_elem {

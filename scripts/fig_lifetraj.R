@@ -8,7 +8,7 @@ library(ggplot2)
 
 
 TWICE <- 5
-nborn <- 20
+nborn <- 15
 lambda <- nborn/TWICE
 g <- 1/10
 
@@ -93,33 +93,75 @@ for(i in 1:(nrow(ensemble_trace)-1)){
 ensemble_trace_df <- ensemble_trace_df[-1,]
 ensemble_trace_vert_df <- ensemble_trace_vert_df[-1,]
 
-# # calculate survival from population: KM estimator
-# pop_trace <- ensemble_trace
-# 
-# # t = t0
-# km_calc <- function(t0,pop_trace){
-#   
-#   surv <- matrix(0,nrow = 0,ncol = 2,dimnames = list(NULL,c("t","S(t)")))
-#   surv <- rbind(surv,c(t0,1))
-#   i <- 1
-#   
-#   devents <- grep(pattern = "dies",x = pop_trace$event)
-#   
-#   
-#   while(length(devents) > 0){
-#     Y <- pop_trace[devents[1]-1,"count"]
-#     dY <- Y - pop_trace[devents[1],"count"]
-#     t <- pop_trace[devents[1],"time"]
-#     inc <- 1 - (dY/Y)
-#     St <- surv[i,2] * inc
-#     
-#     surv <- rbind(surv,c(t,St))
-#     
-#     i <- i + 1
-#     devents <- devents[-1]
-#   }
-#   
-# }
+# calculate survival from population: KM estimator
+pop_trace <- ensemble_trace
+t0 = 1.0
+# t = t0
+km_calc <- function(t0,pop_trace){
+
+  surv <- matrix(0,nrow = 0,ncol = 2,dimnames = list(NULL,c("t","S(t)")))
+  surv <- rbind(surv,c(t0,1))
+  i <- 1
+
+  devents <- grep(pattern = "dies",x = pop_trace$event)
+  devents <- devents[t0 < pop_trace[devents,"time"]]
+
+  while(length(devents) > 0){
+    Y <- pop_trace[devents[1]-1,"count"]
+    dY <- Y - pop_trace[devents[1],"count"]
+    t <- pop_trace[devents[1],"time"]
+    inc <- 1 - (dY/Y)
+    St <- surv[i,2] * inc
+
+    surv <- rbind(surv,c(t,St))
+
+    i <- i + 1
+    devents <- devents[-1]
+  }
+  
+  return(surv)
+}
+
+
+
+km_calc_avgN <- function(t0,pop_trace){
+  
+  surv <- matrix(0,nrow = 0,ncol = 2,dimnames = list(NULL,c("t","S(t)")))
+  surv <- rbind(surv,c(t0,1))
+  i <- 1
+  
+  devents <- grep(pattern = "dies",x = pop_trace$event)
+  devents <- devents[t0 < pop_trace[devents,"time"]]
+  
+  while(length(devents) > 0){
+    prev_trace <- pop_trace[1:(devents[1])-1,]
+    if(grepl(x = tail(prev_trace,1)[["event"]],pattern = "dies")){
+      Y <- prev_trace[devents[1]-1,"count"]
+    } else {
+      last_death <- which(grepl(x = prev_trace[,"event"],pattern = "dies"))
+      if(length(last_death) > 0){
+        tstart <- tail(last_death,1)
+        period <- rbind(prev_trace[(tstart+1):nrow(prev_trace),],pop_trace[devents[1],])
+        Y <- weighted.mean(w = diff(period[,"time"]),x = period[-nrow(period),"count"])
+      } else {
+        tstart <- 1 
+        period <- rbind(prev_trace[(tstart+1):nrow(prev_trace),],pop_trace[devents[1],])
+        Y <- weighted.mean(w = diff(period[,"time"]),x = period[-nrow(period),"count"])
+      }
+    }
+    dY <- prev_trace[devents[1]-1,"count"] - pop_trace[devents[1],"count"]
+    t <- pop_trace[devents[1],"time"]
+    inc <- 1 - (dY/Y)
+    St <- surv[i,2] * inc
+    
+    surv <- rbind(surv,c(t,St))
+    
+    i <- i + 1
+    devents <- devents[-1]
+  }
+  
+  return(surv)
+}
 
 
 # plots
