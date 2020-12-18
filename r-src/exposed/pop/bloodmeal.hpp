@@ -14,7 +14,16 @@
 #include "mosquito.hpp"
 #include "shared.hpp"
 
+
 void bloodmeal(
+  mosy_pop_ptr& mpop,
+  human_pop_ptr& hpop,
+  const double t0,
+  const double dt,
+  const Rcpp::NumericVector& parameters
+);
+
+void bloodmeal_old(
   mosy_pop_ptr& mpop,
   human_pop_ptr& hpop,
   const Rcpp::NumericVector& parameters

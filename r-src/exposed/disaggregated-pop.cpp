@@ -6,9 +6,6 @@
 #
 -------------------------------------------------------------------------------- */
 
-#include <algorithm>
-#include <array>
-
 // [[Rcpp::depends(BH)]]
 // [[Rcpp::plugins(cpp14)]]
 

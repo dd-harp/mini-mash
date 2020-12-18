@@ -59,36 +59,26 @@ Rcpp::NumericMatrix gethist_human_pop(
     }
   );
 
-  auto it = std::find_if(
-    hpop->hist.begin(),
-    hpop->hist.end(),
-    [](const hist_elem& elem){
-      return elem.t > std::numeric_limits<double>::epsilon();
-    }
-  );
+  int n = hpop->hist.size();
 
-  int nm = std::distance(it,hpop->hist.end());
-  Rcpp::NumericMatrix hhist(nm+1,4);
-  Rcpp::colnames(hhist) = Rcpp::CharacterVector::create("time","SH","EH","IH");
+  Rcpp::NumericMatrix histout(n+1,4);
+  Rcpp::colnames(histout) = Rcpp::CharacterVector::create("time","SH","EH","IH");
   int ix{0};
-  hhist.at(ix,0) = 0.;
-  hhist.at(ix,1) = SH;
-  hhist.at(ix,2) = 0.;
-  hhist.at(ix,3) = IH;
+  histout.at(ix,0) = 0.;
+  histout.at(ix,1) = SH;
+  histout.at(ix,2) = 0.;
+  histout.at(ix,3) = IH;
   ix++;
 
-  while(it != hpop->hist.end()){
-
-    hhist.at(ix,0) = it->t;
-    hhist.at(ix,1) = hhist.at(ix-1,1) + it->dS;
-    hhist.at(ix,2) = hhist.at(ix-1,2) + it->dE;
-    hhist.at(ix,3) = hhist.at(ix-1,3) + it->dI;
-
+  for(auto it = hpop->hist.begin(); it != hpop->hist.end(); it++){
+    histout.at(ix,0) = it->t;
+    histout.at(ix,1) = histout.at(ix-1,1) + it->dS;
+    histout.at(ix,2) = histout.at(ix-1,2) + it->dE;
+    histout.at(ix,3) = histout.at(ix-1,3) + it->dI;
     ix++;
-    it++;
   }
 
-  return hhist;
+  return histout;
 };
 
 
@@ -151,10 +141,6 @@ void run_human_pop(
 
     // if overrun, advance time to tmax and adjust the Poisson process for the fast forward
     if(tnext > tmax){
-      // push final state to trace
-      hpop->Sh_trace.emplace(queue_tuple(hpop->S,tmax));
-      hpop->Ih_trace.emplace(queue_tuple(hpop->I,tmax));
-      // adjust integrated rates and break
       double remaining = tmax - hpop->tnow;
       hpop->Tk += hpop->ak * remaining;
       hpop->tnow = tmax;
