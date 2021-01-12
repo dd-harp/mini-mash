@@ -1,5 +1,13 @@
 # --------------------------------------------------------------------------------
-# load libraries and setup
+#
+#   Produce figure for synthetic ensemble and individual trajectories
+#   Sean L. Wu (slwood89@gmail.com)
+#   January 2021
+#
+# --------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
+#   load libraries and setup
 # --------------------------------------------------------------------------------
 
 rm(list=ls());gc()
@@ -56,7 +64,7 @@ while(nrow(trace_temp) > 0){
 }
 
 ensemble_trace <- rbind(
-  ensemble_trace, 
+  ensemble_trace,
   data.frame(time = TWICE,count = ensemble_trace[nrow(ensemble_trace),"count"], event = "end")
 )
 
@@ -64,7 +72,7 @@ ensemble_trace <- rbind(
 ensemble_trace_df <- data.frame(x0=-1,y0=-1,x1=-1,y1=-1,id=-1)
 ensemble_trace_vert_df <- data.frame(x0=-1,y0=-1,x1=-1,y1=-1,id=-1)
 for(i in 1:(nrow(ensemble_trace)-1)){
-  
+
   ensemble_trace_df <- rbind(
     ensemble_trace_df,
     data.frame(
@@ -75,7 +83,7 @@ for(i in 1:(nrow(ensemble_trace)-1)){
       id = i
     )
   )
-  
+
   if(i < (nrow(ensemble_trace)-1)){
     ensemble_trace_vert_df <- rbind(
       ensemble_trace_vert_df,
@@ -86,9 +94,9 @@ for(i in 1:(nrow(ensemble_trace)-1)){
         y1 = ensemble_trace[i+1,"count"],
         id = i
       )
-    )  
+    )
   }
-  
+
 }
 ensemble_trace_df <- ensemble_trace_df[-1,]
 ensemble_trace_vert_df <- ensemble_trace_vert_df[-1,]
@@ -118,21 +126,21 @@ km_calc <- function(t0,pop_trace){
     i <- i + 1
     devents <- devents[-1]
   }
-  
+
   return(surv)
 }
 
 
 
 km_calc_avgN <- function(t0,pop_trace){
-  
+
   surv <- matrix(0,nrow = 0,ncol = 2,dimnames = list(NULL,c("t","S(t)")))
   surv <- rbind(surv,c(t0,1))
   i <- 1
-  
+
   devents <- grep(pattern = "dies",x = pop_trace$event)
   devents <- devents[t0 < pop_trace[devents,"time"]]
-  
+
   while(length(devents) > 0){
     prev_trace <- pop_trace[1:(devents[1])-1,]
     if(grepl(x = tail(prev_trace,1)[["event"]],pattern = "dies")){
@@ -144,7 +152,7 @@ km_calc_avgN <- function(t0,pop_trace){
         period <- rbind(prev_trace[(tstart+1):nrow(prev_trace),],pop_trace[devents[1],])
         Y <- weighted.mean(w = diff(period[,"time"]),x = period[-nrow(period),"count"])
       } else {
-        tstart <- 1 
+        tstart <- 1
         period <- rbind(prev_trace[(tstart+1):nrow(prev_trace),],pop_trace[devents[1],])
         Y <- weighted.mean(w = diff(period[,"time"]),x = period[-nrow(period),"count"])
       }
@@ -153,13 +161,13 @@ km_calc_avgN <- function(t0,pop_trace){
     t <- pop_trace[devents[1],"time"]
     inc <- 1 - (dY/Y)
     St <- surv[i,2] * inc
-    
+
     surv <- rbind(surv,c(t,St))
-    
+
     i <- i + 1
     devents <- devents[-1]
   }
-  
+
   return(surv)
 }
 
@@ -179,7 +187,7 @@ plot_indiv <- ggplot(data = indiv_traces) +
 
 ggsave(filename = here::here("figs/indiv_hist.tiff"),plot = plot_indiv,device = "tiff",height = 6,width = 8,compression = "lzw")
 
-plot_ensemble <- ggplot(data = ensemble_trace_df) + 
+plot_ensemble <- ggplot(data = ensemble_trace_df) +
   geom_segment(aes(y=y0,x=x0,yend=y1,xend=x1,group=id),size=1.025) +
   geom_segment(data=ensemble_trace_vert_df,aes(x=x0,xend=x1,y=y0,yend=y1,group=id),linetype=2,alpha=0.5) +
   geom_point(aes(x=x0,y=y0),shape=16,size=4) +
