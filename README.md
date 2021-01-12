@@ -1,36 +1,15 @@
-# mini-mash
-the minimum viable simulation
+# Mini-MASH
+The minimum Ross-Macdonald (RM) style model for which a disaggregated representation makes sense. The model is **RM-delay**, because E&rarr;I transitions in both the human and mosquito populations only occur after a fixed delay. In this case a disaggregated representation means that different portions of code are responsible for the various components of the model. The components are disjoint subsets of the full state space such that their union gives the full state space of the model (an aggregated representation).
 
-## paper
+The key point is that feedback loops in the standard compartmental flow diagram representation of the system can be broken across time steps if there is a minimum delay in the feedback loop, such that a time step can be chosen that is less than or equal to that minimum delay. We call such a time step TWICE, the Temporal Window of Indifference to Contingent Events. In this case, an additional component that samples events rather than stores states should be introduced that is responsible for sampling the initiation times of events with delay. For **RM-delay**, it is the bloodmeal.
 
-* RM-delay: one example
-* maybe predator-prey with some sort of delay?
+Causal dependency between mosquito and human populations can only be transmitted via the bloodmeal (when pathogens are exchanged). During a TWICE interval, bloodmeals which cause S&rarr;E events in humans and mosquitoes are sampled. Because by definition a TWICE interval must be less than the LEP (Liver Emergence Period) and EIP (Extrinsic Incubation Period), those "initiating" S&rarr;E events will not result in E&rarr;I events until the next TWICE step. Because only I individuals can affect the other species, given the system state at the start of the TWICE interval, the two populations are conditionally independent until the next one; that is, they can be simulated independently until the start of the next TWICE interval, where they must find out what S&rarr;E bloodmeals happened on the last step.
 
-## notes
+## Directory structure
 
-for disaggregated sim with explicit exposed class to track exact output, store the trajectory as a set and then sort it by state change time. Push output *every* time something happens.
-
-It needs to be possible to somehow assign H2M bites (S to E transitions) to S mosquitoes who won’t survive the rest of that TWICE step.
-
-The current disaggregated.cpp has a problem in that mosquitoes which experience a S to E transition experience too much hazard. The part between btime and t0 is experienced twice. This means the hazard for E’s is right but there are too few S’s.
-
-The exact file has another problem. S to E transitions are only assigned to S mosquitoes that are conditioned to survive the part between btime and t0, so the hazard for S mosquitoes is right but there will be too many E’s.
-
-During the BM module, if a S->E mosy transition fires, then we store it. When we use it to update, we can do a little approximation to get things to work out nicely. Let's say we're now in the mosquito module and we get an S->E transition. "That mosquito" (whichever one of the ensemble it occurred to) has already properly accumulated hazard over the TWICE step, so it's technically inappropriate to sample for survival between [btime,t0). However, what we can do is sample P(surv) = exp(-g*(t0-btime)). If they survived, then set S-=1 and E+=1 at t0, because (this is the approximation) that was a S->E transition that landed on a mosquito which survived to the end of the step, t0. If not, don't update anything (it landed on a mosquito that did not survive to the end of the step).
-
-**Exact**
-
-H2M
-Consider the H2M (mosy infection) event. We can use the ensemble trajectory of IH humans. We need the individual life histories of SV mosquitoes. Given IH, we get a time varying hazard (each time IH recovers or is added) that's identical for each mosquito, but they see a different amount of it. Also, we only need to sample for those mosquitoes that survive until the end of the TWICE step, if we only care about getting IV right (if we want to match the DDEs *exactly*, we need to do the whole thing).
-
-M2H
-Because humans can't die, this one is easy. We construct the per-capita hazard trace from IV for each human, and evaluate it for each SH. We need each SH's trajectory, because I->S is an allowed transition so some newly recovered humans may pop up and be eligible for the hazard in the middle of the TWICE step.
-
-**Bloodmeal**
-
-For a susceptible mosquito, the bloodmeal module samples the 1st event time of an NHPP over TWICE.
-
-## random ramblings 
-
-* perhaps delays that are interruptable *require* an agent-based representation to be statistically exact? otherwise risk-set sampling is not possible. this would be an interesting result, since it would tell you how to structure the state space of the model from considerations that arise during conceptual model formulation.
-* Be more clear when we're doing ABM (individual) vs. integer stochastic (population).
+* data: output from simulation runs
+* deprecated: unmaintained files
+* figs: produced figures
+* scratch: test files
+* scripts: run scripts (prefaced with run) and figure making scripts (prefaced with fig)
+* src: simulation source code
