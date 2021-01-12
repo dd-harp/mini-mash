@@ -16,7 +16,7 @@ dev.off()
 library(here)
 library(data.table)
 library(ggplot2)
-library(deSolve)
+library(odin)
 library(Rcpp)
 library(matrixStats)
 
@@ -76,19 +76,3 @@ abm_dt <- as.data.table(abm_parout)
 abm_dt <- data.table::melt(abm_dt, id.vars = "runid")
 
 data.table::fwrite(x = abm_dt,file = here::here("data/abm_means.csv"))
-
-# abm_dt_sum <- abm_dt[,.(mean = mean(value)),by = variable]
-# abm_dt_sum$dde <- IC$y0
-#
-# data.table::fwrite(x = abm_dt_sum,file = here::here("figs/abm_mc_means.csv"))
-#
-# plot_abm_hist <- ggplot(data=merge(abm_dt,abm_dt_sum)) +
-#   geom_histogram(aes(value,after_stat(density),fill=variable),position = "identity", color = "black", size = 0.15,alpha=0.6) +
-#   geom_vline(aes(color = variable,xintercept = mean),linetype=3,size=0.5) +
-#   geom_vline(aes(color = variable,xintercept = dde),linetype=2,size=0.8) +
-#   facet_wrap(. ~ variable,scales = "free") +
-#   guides(fill = FALSE, color = FALSE) +
-#   theme_bw() +
-#   theme(axis.title = element_blank())
-#
-# ggsave(plot = plot_abm_hist, filename = here::here("figs/abm_hist.tiff"),device = "tiff",width = 10,height = 6, compression = "lzw")

@@ -16,7 +16,7 @@ dev.off()
 library(here)
 library(data.table)
 library(ggplot2)
-library(deSolve)
+library(odin)
 library(Rcpp)
 library(matrixStats)
 
