@@ -233,6 +233,7 @@ boost::icl::continuous_interval<double> getrisk_human(
   const double t0,
   const double dt
 ){
+  assert(hh->tnow >= t0);
   double tmax{t0+dt};
   return boost::icl::continuous_interval<double>::right_open(hh->tnow,tmax);
 };

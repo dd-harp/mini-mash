@@ -33,7 +33,7 @@ void bloodmeal(
       for(auto it = Iv_trace.begin(); it != Iv_trace.end(); it++){
         double t0 = boost::icl::lower(it->first);
         double t1 = boost::icl::upper(it->first);
-        int Iv = it->second;
+        double Iv = it->second;
         double haz = a*b*Iv*(1./Nh)*(t1-t0);
         double risk = 1. - std::exp(-haz);
         // sample if bite occured, if so, when?
@@ -57,7 +57,7 @@ void bloodmeal(
       for(auto it = Ih_trace.begin(); it != Ih_trace.end(); it++){
         double t0 = boost::icl::lower(it->first);
         double t1 = boost::icl::upper(it->first);
-        int Ih = it->second;
+        double Ih = it->second;
         double haz = a*c*(Ih/Nh)*(t1-t0);
         double risk = 1. - std::exp(-haz);
         // sample if bite occured, if so, when?

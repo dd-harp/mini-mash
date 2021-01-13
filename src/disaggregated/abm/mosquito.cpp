@@ -239,6 +239,7 @@ void sim_mosquito_E(mosquito_uptr& mosy, const double t0, const double dt){
 void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
 
   double tmax{t0+dt};
+  double risk_t0, risk_t1;
 
   // if this is the first time entering the I state (E2I) transition
   if(mosy->shist.back() == 'E'){
@@ -247,23 +248,25 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     double tnow = mosy->tnext;
     mosy->thist.emplace_back(tnow);
     mosy->shist.emplace_back('I');
+    risk_t0 = tnow;
 
   } else {
     assert(mosy->shist.back() == 'I');
+    risk_t0 = t0;
   }
 
   // next state is death, but we assign I so that this function will get called again
   if(mosy->tdie < tmax){
     mosy->tnext = mosy->tdie;
     mosy->snext = 'D';
+    risk_t1 = mosy->tdie;
   } else {
     mosy->tnext = tmax + 2E-8;
     mosy->snext = 'I';
+    risk_t1 = tmax;
   }
 
   // push the interval this mosquito contributes to human risk to the trace
-  double risk_t0 = std::max(t0,mosy->thist.back());
-  double risk_t1 = std::min(mosy->tdie,tmax);
   mosy->pop->Iv_trace += std::make_pair(
     boost::icl::continuous_interval<double>(risk_t0,risk_t1),
     1
