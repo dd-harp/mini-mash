@@ -29,8 +29,13 @@ abm[,"type" := "abm"]
 pop[,"type" := "pop"]
 
 plot_hist <- ggplot(data = rbind(abm,pop)) +
-  geom_histogram(aes(x = value,y = after_stat(density),fill=interaction(variable,type)),position = "identity", color = "black", size = 0.15,alpha=0.) +
+  geom_histogram(aes(x = value,y = after_stat(density),fill=type),position = "identity", color = "black", size = 0.15,alpha=0.25) +
     facet_wrap(. ~ variable,scales = "free") +
-    guides(fill = FALSE, color = FALSE) +
+    guides(color = FALSE) +
     theme_bw() +
     theme(axis.title = element_blank())
+
+ggsave(filename = here::here("figs/disagg_hist.tiff"),plot = plot_hist,device = "tiff",height = 6,width = 8,compression = "lzw")
+
+abm[,.(mean = mean(value)),by=variable]
+pop[,.(mean = mean(value)),by=variable]

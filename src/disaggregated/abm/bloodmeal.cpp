@@ -34,9 +34,9 @@ void bloodmeal(
         double t0 = boost::icl::lower(it->first);
         double t1 = boost::icl::upper(it->first);
         int Iv = it->second;
-        double risk = a*b*Iv*(1./Nh)*(t1-t0);
+        double haz = a*b*Iv*(1./Nh)*(t1-t0);
         // sample if bite occured, if so, when?
-        if(R::runif(0.,1.) < risk){
+        if(R::runif(0.,1.) < std::exp(-haz)){
           double btime = R::runif(t0,t1);
           push_M2H_bite(hh,btime);
           break;
@@ -57,9 +57,9 @@ void bloodmeal(
         double t0 = boost::icl::lower(it->first);
         double t1 = boost::icl::upper(it->first);
         int Ih = it->second;
-        double risk = a*c*(Ih/Nh)*(t1-t0);
+        double haz = a*c*(Ih/Nh)*(t1-t0);
         // sample if bite occured, if so, when?
-        if(R::runif(0.,1.) < risk){
+        if(R::runif(0.,1.) < std::exp(-haz)){
           double btime = R::runif(t0,t1);
           push_H2M_bite(mm,btime);
           break;
