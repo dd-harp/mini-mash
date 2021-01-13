@@ -103,7 +103,7 @@ void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt){
   );
 
   // mosquitoes emerge
-  int nborn = R::rpois(mpop->lambda) * dt;
+  int nborn = R::rpois(mpop->lambda * dt);
   for(int i=0; i<nborn; i++){
     double bday = R::runif(t0,tmax);
     mpop->pop.emplace_back(make_mosquito(mpop,bday,'S'));
@@ -248,6 +248,8 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     mosy->thist.emplace_back(tnow);
     mosy->shist.emplace_back('I');
 
+  } else {
+    assert(mosy->shist.back() == 'I');
   }
 
   // next state is death, but we assign I so that this function will get called again
