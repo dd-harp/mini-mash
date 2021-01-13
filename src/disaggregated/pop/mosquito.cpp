@@ -107,7 +107,7 @@ void run_mosy_pop(
     double haz = (t0 - btime) * mpop->g;
 
     // did they survive until t0? if not, they died between [btime,t0)
-    if(R::runif(0.,1.) < exp(-haz)){
+    if(R::runif(0.,1.) < std::exp(-haz)){
 
       // S->E
       mpop->S -= 1;

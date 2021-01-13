@@ -37,5 +37,5 @@ plot_hist <- ggplot(data = rbind(abm,pop)) +
 
 ggsave(filename = here::here("figs/disagg_hist.tiff"),plot = plot_hist,device = "tiff",height = 6,width = 8,compression = "lzw")
 
-abm[,.(mean = mean(value)),by=variable]
-pop[,.(mean = mean(value)),by=variable]
+# abm[,.(mean = mean(value)),by=variable]
+# pop[,.(mean = mean(value)),by=variable]
