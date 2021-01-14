@@ -13,6 +13,7 @@
 #include <limits>
 
 static double infinity = std::numeric_limits<double>::infinity();
+static double epsilon = std::numeric_limits<double>::epsilon();
 
 // history data struct
 struct hist_elem {

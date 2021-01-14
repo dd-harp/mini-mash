@@ -69,7 +69,7 @@ Rcpp::NumericMatrix gethist_humanpop(
     hpop->hist.begin(),
     hpop->hist.end(),
     [](const hist_elem& elem){
-      return elem.t > std::numeric_limits<double>::epsilon();
+      return elem.t > epsilon;
     }
   );
 
@@ -167,7 +167,7 @@ void sim_human_S(human_uptr& hh, const double t0, const double dt){
   }
 
   // queue S2S (so that we can accumulate infection hazard on each step properly)
-  hh->tnext = tmax + 2E-8;
+  hh->tnext = tmax + epsilon;
   hh->snext = 'S';
 
 };
@@ -213,7 +213,7 @@ void sim_human_I(human_uptr& hh, const double t0, const double dt){
     hh->snext = 'S';
     risk_t1 = hh->I2S;
   } else {
-    hh->tnext = tmax + 2E-8;
+    hh->tnext = tmax + epsilon;
     hh->snext = 'I';
     risk_t1 = tmax;
   }

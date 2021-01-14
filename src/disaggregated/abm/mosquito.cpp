@@ -135,7 +135,7 @@ Rcpp::NumericMatrix gethist_mosypop(
     mpop->hist.begin(),
     mpop->hist.end(),
     [](const hist_elem& elem){
-      return elem.t > std::numeric_limits<double>::epsilon();
+      return elem.t > epsilon;
     }
   );
 
@@ -261,7 +261,7 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     mosy->snext = 'D';
     risk_t1 = mosy->tdie;
   } else {
-    mosy->tnext = tmax + 2E-8;
+    mosy->tnext = tmax + epsilon;
     mosy->snext = 'I';
     risk_t1 = tmax;
   }
