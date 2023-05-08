@@ -1,5 +1,5 @@
 rm(list=ls());gc()
-dev.off()
+# dev.off()
 
 library(here)
 library(data.table)
@@ -8,18 +8,21 @@ library(ggplot2)
 library(deSolve)
 library(Rcpp)
 
-Rcpp::sourceCpp(here::here("r-src/noexposed/aggregated.cpp"))
-Rcpp::sourceCpp(here::here("r-src/discretise.cpp"))
-source(here::here("r-src/deterministic.R"))
+Rcpp::sourceCpp(here::here("src/aggregated/aggregated.cpp"))
+Rcpp::sourceCpp(here::here("src/discretise.cpp"))
+source(here::here("src/deterministic.R"))
 
-NH <- 1e3
+NH <- 1e4
 X <- 0.3
 
 IC <- calc_equilibrium(NH = NH,X = X)
 
+y0_int <- round(IC$y0)
+
+# run DDE model
 tmax <- 365*100
 
-dde_odin <- derivs_odin(
+dde_odin <- derivs_odin$new(
   a = IC$parameters[["a"]],
   b = IC$parameters[["b"]],
   c = IC$parameters[["c"]],
@@ -30,6 +33,8 @@ dde_odin <- derivs_odin(
   LEP = IC$parameters[["LEP"]],
   IH0 = IC$y0[["IH"]],
   IV0 = IC$y0[["IV"]],
+  EH0 = IC$y0[["EH"]],
+  EV0 = IC$y0[["EV"]],
   SH0 = IC$y0[["SH"]],
   SV0 = IC$y0[["SV"]]
 )
@@ -38,23 +43,34 @@ dde_out <- dde_odin$run(t = 0:tmax)
 
 dde_out <- as.data.table(dde_out)
 data.table::setnames(x = dde_out,old = "t",new = "time")
-dde_out <- data.table::melt(dde_out,id.vars = "time",measure.vars = c("SH","IH","SV","IV"))
+dde_out <- data.table::melt(dde_out,id.vars = "time",measure.vars = c("SH","EH","IH","SV","EV","IV"))
 dde_out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
 
+# plot equilibrium vs DDEs
+ggplot(dde_out) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.95) +
+  geom_hline(data = eq2dt(IC), mapping = aes(yintercept=value,color=variable),linetype=2,alpha=0.5) +
+  facet_wrap(. ~ variable,scales="free_y") +
+  theme_bw()
+
+# run aggregated simulation
 out <- pfsim_aggregated(
   tmax = tmax,
-  SH = IC$y0[["SH"]],
-  IH = IC$y0[["IH"]],
-  SV = IC$y0[["SV"]],
-  IV = IC$y0[["IV"]],
+  SH = y0_int[["SH"]],
+  EH = y0_int[["EH"]],
+  IH = y0_int[["IH"]],
+  SV = y0_int[["SV"]],
+  EV = y0_int[["EV"]],
+  IV = y0_int[["IV"]],
   parameters = IC$parameters,
   verbose = T
 )
 
 out <- data.table::as.data.table(discretise(out = out,dt = 1))
-out <- data.table::melt(out,id.vars = "time",measure.vars = c("SH","IH","SV","IV"))
+# out <- data.table::as.data.table(out)
+out <- data.table::melt(out,id.vars = "time",measure.vars = c("SH","EH","IH","SV","EV","IV"))
 out[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
-out[, ("species") := ifelse(variable %in% c("SH","IH"),"Human","Mosquito")]
+out[, ("species") := ifelse(variable %in% c("SH","EH","IH"),"Human","Mosquito")]
 
 plot_agg <- ggplot(data = out) +
   geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +

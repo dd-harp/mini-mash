@@ -47,6 +47,12 @@ calc_equilibrium <- function(NH,X,g=1/12,a=(0.9 * 1/3),b=0.55,c=0.15,r=1/200,EIP
   )
 }
 
+#' @param IC output from `calc_equilibrium`
+#' @return a `data.table` of the equilibrium state variables
+eq2dt <- function(IC) {
+  data.table(variable = names(IC$y0), value = IC$y0, species = ifelse(substr(names(IC$y0),2,2) == "H", "Human", "Mosquito"))
+}
+
 
 derivs_odin <- odin::odin({
 

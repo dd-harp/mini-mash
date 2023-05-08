@@ -47,8 +47,10 @@ const static double infinity = std::numeric_limits<double>::infinity();
 Rcpp::NumericMatrix pfsim_aggregated(
   const double tmax,
   const int SH,
+  const int EH,
   const int IH,
   const int SV,
+  const int EV,
   const int IV,
   const Rcpp::NumericVector parameters,
   const bool verbose
@@ -67,10 +69,10 @@ Rcpp::NumericMatrix pfsim_aggregated(
   // state
   std::array<int,6> X{0};
   X[states::SH] = SH;
-  X[states::EH] = 0;
+  X[states::EH] = EH;
   X[states::IH] = IH;
   X[states::SV] = SV;
-  X[states::EV] = 0;
+  X[states::EV] = EV;
   X[states::IV] = IV;
 
   // next time each event fires
@@ -135,12 +137,23 @@ Rcpp::NumericMatrix pfsim_aggregated(
   for(int j=0; j<7; j++){
     Pk[j] = log(1. / R::runif(0., 1.));
   }
-
-  if(verbose){
-    Rcpp::Rcout << " --- beginning simulation --- \n";
+  
+  // draw initial EH->IH and EV->IV times for delayed individuals
+  for (int i=0; i<EH; i++) {
+    double t_inf = R::runif(-LEP,0.0);
+    h_LEP.emplace(t_inf + LEP);
+  }
+  
+  for (int i=0; i<EV; i++) {
+    double t_inf = R::runif(-EIP,0.0);
+    m_EIP.emplace(t_inf + EIP);
   }
 
   // main loop
+  if(verbose){
+    Rcpp::Rcout << " --- beginning simulation --- \n";
+  }
+  
   while(tnow < tmax){
 
     if(verbose){
