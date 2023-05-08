@@ -72,6 +72,7 @@ using mosy_pop_ptr = std::unique_ptr<mosy_pop>;
 
 mosy_pop_ptr make_mosy_pop(
   const int SV,
+  const int EV,
   const int IV,
   const Rcpp::NumericVector& parameters
 );
@@ -79,6 +80,7 @@ mosy_pop_ptr make_mosy_pop(
 Rcpp::NumericMatrix gethist_mosy_pop(
   mosy_pop_ptr& mpop,
   const int SV,
+  const int EV,
   const int IV
 );
 

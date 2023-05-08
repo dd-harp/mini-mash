@@ -16,6 +16,7 @@
 
 mosy_pop_ptr make_mosy_pop(
   const int SV,
+  const int EV,
   const int IV,
   const Rcpp::NumericVector& parameters
 ){
@@ -23,12 +24,10 @@ mosy_pop_ptr make_mosy_pop(
   mosy_pop_ptr mpop = std::make_unique<mosy_pop>();
 
   mpop->S = SV;
-  mpop->E = 0;
+  mpop->E = EV;
   mpop->I = IV;
 
   mpop->tnow = 0.0;
-
-  mpop->M_inf.emplace(infinity);
 
   mpop->g = parameters["g"];
   mpop->lambda = parameters["lambda"];
@@ -44,13 +43,21 @@ mosy_pop_ptr make_mosy_pop(
   for(int j=0; j<4; j++){
     mpop->Pk[j] = log(1. / R::runif(0.,1.));
   }
+  
+  // draw initial EV->IV times for delayed individuals
+  mpop->M_inf.emplace(infinity);
+  for (int i=0; i<EV; i++) {
+    double t_inf = R::runif(-mpop->EIP,0.0);
+    mpop->M_inf.emplace(t_inf + mpop->EIP);
+  }
 
-    return mpop;
+  return mpop;
 };
 
 Rcpp::NumericMatrix gethist_mosy_pop(
   mosy_pop_ptr& mpop,
   const int SV,
+  const int EV,
   const int IV
 ){
 
@@ -69,7 +76,7 @@ Rcpp::NumericMatrix gethist_mosy_pop(
   int ix{0};
   histout.at(ix,0) = 0.;
   histout.at(ix,1) = SV;
-  histout.at(ix,2) = 0.;
+  histout.at(ix,2) = EV;
   histout.at(ix,3) = IV;
   ix++;
 

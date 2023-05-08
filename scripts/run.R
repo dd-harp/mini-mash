@@ -82,14 +82,20 @@ plot_agg <- ggplot(data = out) +
 
 ggsave(plot = plot_agg, filename = here::here("figs/gillespie_dde.tiff"),device = "tiff",width = 14,height = 8)
 
-Rcpp::sourceCpp(here::here("r-src/noexposed/disaggregated.cpp"),rebuild = TRUE)
+# run disaggregated population simulation
+Rcpp::sourceCpp(here::here("src/disaggregated/disaggregated-pop.cpp"),rebuild = TRUE)
 
-full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
+full_out <- run_miniMASH_pop(
+  SV = y0_int[["SV"]], EV = y0_int[["EV"]], IV = y0_int[["IV"]], 
+  SH = y0_int[["SH"]], EH = y0_int[["EH"]], IH = y0_int[["IH"]],
+  parameters = IC$parameters, dt = 5, tmax = tmax 
+)
+# full_out <- run_miniMASH(parameters = IC$parameters,y0 = round(IC$y0),dt = 5,tmax = tmax)
 
-out_m <- full_out$mosquito
-colnames(out_m) <- c("time","SV","IV")
+out_m <- full_out$mosy
+colnames(out_m) <- c("time","SV","EV","IV")
 out_h <- full_out$human
-colnames(out_h) <- c("time","SH","IH")
+colnames(out_h) <- c("time","SH","EH","IH")
 
 out_m <- data.table::as.data.table(discretise(out = out_m,dt = 1))
 out_m <- data.table::melt(out_m,id.vars="time")
@@ -109,4 +115,4 @@ plot_disagg <- ggplot(data = rbind(out_h,out_m)) +
   ggtitle("MASH vs. DDE") +
   theme_bw()
 
-ggsave(plot = plot_disagg, filename = here::here("figs/MASH_dde.tiff"),device = "tiff",width = 14,height = 8)
+ggsave(plot = plot_disagg, filename = here::here("figs/MASH_pop_dde.tiff"),device = "tiff",width = 14,height = 8)

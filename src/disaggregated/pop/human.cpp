@@ -16,6 +16,7 @@
 
 human_pop_ptr make_human_pop(
   const int SH,
+  const int EH,
   const int IH,
   const Rcpp::NumericVector& parameters
 ){
@@ -23,10 +24,10 @@ human_pop_ptr make_human_pop(
   human_pop_ptr hpop = std::make_unique<human_pop>();
 
   hpop->S = SH;
-  hpop->E = 0;
+  hpop->E = EH;
   hpop->I = IH;
 
-  hpop->N = SH + IH;
+  hpop->N = SH + EH + IH;
 
   hpop->tnow = 0.0;
 
@@ -39,7 +40,12 @@ human_pop_ptr make_human_pop(
   // draw initial firing times
   hpop->Pk = log(1. / R::runif(0.,1.));
 
+  // draw initial EH->IH times for delayed individuals
   hpop->H_inf.emplace(infinity);
+  for (int i=0; i<EH; i++) {
+    double t_inf = R::runif(-hpop->LEP,0.0);
+    hpop->H_inf.emplace(t_inf + hpop->LEP);
+  }
 
   return hpop;
 };
@@ -48,6 +54,7 @@ human_pop_ptr make_human_pop(
 Rcpp::NumericMatrix gethist_human_pop(
   human_pop_ptr& hpop,
   const int SH,
+  const int EH,
   const int IH
 ){
 
@@ -66,7 +73,7 @@ Rcpp::NumericMatrix gethist_human_pop(
   int ix{0};
   histout.at(ix,0) = 0.;
   histout.at(ix,1) = SH;
-  histout.at(ix,2) = 0.;
+  histout.at(ix,2) = EH;
   histout.at(ix,3) = IH;
   ix++;
 

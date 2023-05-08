@@ -16,15 +16,15 @@
 
 // [[Rcpp::export]]
 Rcpp::List run_miniMASH_pop(
-  const int SV, const int IV,
-  const int SH, const int IH,
+  const int SV, const int EV, const int IV,
+  const int SH, const int EH, const int IH,
   const Rcpp::NumericVector& parameters,
   const double dt, const double tmax
 ){
 
   // make populations
-  human_pop_ptr hpop = make_human_pop(SH,IH,parameters);
-  mosy_pop_ptr mpop = make_mosy_pop(SV,IV,parameters);
+  human_pop_ptr hpop = make_human_pop(SH,EH,IH,parameters);
+  mosy_pop_ptr mpop = make_mosy_pop(SV,EV,IV,parameters);
 
   // run simulation
   double clock{0.0};
@@ -49,8 +49,8 @@ Rcpp::List run_miniMASH_pop(
 
   Rcpp::Rcout << "--- end simulation ---\n";
 
-  Rcpp::NumericMatrix hhist = gethist_human_pop(hpop,SH,IH);
-  Rcpp::NumericMatrix mhist = gethist_mosy_pop(mpop,SV,IV);
+  Rcpp::NumericMatrix hhist = gethist_human_pop(hpop,SH,EH,IH);
+  Rcpp::NumericMatrix mhist = gethist_mosy_pop(mpop,SV,EV,IV);
 
   return Rcpp::List::create(
     Rcpp::Named("human") = hhist,

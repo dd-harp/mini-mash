@@ -36,7 +36,7 @@ typedef struct human_pop {
 
   double tnow;
 
-  // bites when M->H transmission occured
+  // bites when M->H transmission occurred
   queue M2H_bites;
 
   // when the resulting infection in M will manifest (E->I)
@@ -71,6 +71,7 @@ using human_pop_ptr = std::unique_ptr<human_pop>;
 
 human_pop_ptr make_human_pop(
   const int SH,
+  const int EH,
   const int IH,
   const Rcpp::NumericVector& parameters
 );
@@ -78,6 +79,7 @@ human_pop_ptr make_human_pop(
 Rcpp::NumericMatrix gethist_human_pop(
   human_pop_ptr& hpop,
   const int SH,
+  const int EH,
   const int IH
 );
 
