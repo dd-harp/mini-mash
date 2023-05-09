@@ -116,3 +116,37 @@ plot_disagg <- ggplot(data = rbind(out_h,out_m)) +
   theme_bw()
 
 ggsave(plot = plot_disagg, filename = here::here("figs/MASH_pop_dde.tiff"),device = "tiff",width = 14,height = 8)
+
+# run aggregated population simulation
+Rcpp::sourceCpp(here::here("src/disaggregated/disaggregated-abm.cpp"),rebuild = TRUE)
+
+full_out <- run_miniMASH_abm(
+  SV = y0_int[["SV"]], EV = y0_int[["EV"]], IV = y0_int[["IV"]], 
+  SH = y0_int[["SH"]], EH = y0_int[["EH"]], IH = y0_int[["IH"]],
+  parameters = IC$parameters, dt = 5, tmax = tmax 
+)
+
+out_m <- full_out$mosy
+colnames(out_m) <- c("time","SV","EV","IV")
+out_h <- full_out$human
+colnames(out_h) <- c("time","SH","EH","IH")
+
+out_m <- data.table::as.data.table(discretise(out = out_m,dt = 1))
+out_m <- data.table::melt(out_m,id.vars="time")
+out_m[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+out_m[, ("species") := "Mosquito"]
+
+out_h <- data.table::as.data.table(discretise(out = out_h,dt = 1))
+out_h <- data.table::melt(out_h,id.vars="time")
+out_h[, ("mean") := cumsum(value)/1:.N, by = .(variable)]
+out_h[, ("species") := "Human"]
+
+plot_disagg <- ggplot(data = rbind(out_h,out_m)) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.5) +
+  geom_line(aes(x=time,y=value,color=variable),alpha=0.9,data=dde_out,linetype=2) +
+  geom_line(aes(x=time,y=mean,color=variable)) +
+  facet_wrap(. ~ species,scales = "free_y") +
+  ggtitle("MASH vs. DDE") +
+  theme_bw()
+
+ggsave(plot = plot_disagg, filename = here::here("figs/MASH_abm_dde.tiff"),device = "tiff",width = 14,height = 8)

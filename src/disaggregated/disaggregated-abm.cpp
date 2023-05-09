@@ -19,15 +19,15 @@
 
 // [[Rcpp::export]]
 Rcpp::List run_miniMASH_abm(
-  const int SV, const int IV,
-  const int SH, const int IH,
+  const int SV, const int EV, const int IV,
+  const int SH, const int EH, const int IH,
   const Rcpp::NumericVector& parameters,
   const double dt, const double tmax
 ){
 
   // make populations
-  human_pop_uptr hpop = make_humanpop(SH,IH,parameters);
-  mosquito_pop_uptr mpop = make_mosypop(SV,IV,parameters);
+  human_pop_uptr hpop = make_humanpop(SH,EH,IH,parameters);
+  mosquito_pop_uptr mpop = make_mosypop(SV,EV,IV,parameters);
 
   // run simulation
   double clock{0.0};
@@ -55,8 +55,8 @@ Rcpp::List run_miniMASH_abm(
   // prepare output
   mpop->pop.clear(); // need to call mosy dtor to output state trajectory
 
-  Rcpp::NumericMatrix hhist = gethist_humanpop(SH,IH,hpop);
-  Rcpp::NumericMatrix mhist = gethist_mosypop(SV,IV,mpop);
+  Rcpp::NumericMatrix hhist = gethist_humanpop(SH,EH,IH,hpop);
+  Rcpp::NumericMatrix mhist = gethist_mosypop(SV,EV,IV,mpop);
 
   return Rcpp::List::create(
     Rcpp::Named("human") = hhist,

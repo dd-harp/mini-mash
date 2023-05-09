@@ -85,11 +85,11 @@ using mosquito_pop_uptr = std::unique_ptr<mosquito_pop>;
 #   population functions
 -------------------------------------------------------------------------------- */
 
-mosquito_pop_uptr make_mosypop(const int SV, const int IV, const Rcpp::NumericVector& parameters);
+mosquito_pop_uptr make_mosypop(const int SV, const int EV, const int IV, const Rcpp::NumericVector& parameters);
 
 void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt);
 
-Rcpp::NumericMatrix gethist_mosypop(const int SV, const int IV, mosquito_pop_uptr& mpop);
+Rcpp::NumericMatrix gethist_mosypop(const int SV, const int EV, const int IV, mosquito_pop_uptr& mpop);
 
 
 /* --------------------------------------------------------------------------------

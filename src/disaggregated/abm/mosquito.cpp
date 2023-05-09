@@ -59,7 +59,6 @@ mosquito::~mosquito(){
       Rcpp::stop("illegal state detected, called from 'mosquito::~mosquito'");
     }
   }
-  // Rcpp::Rcout << "DONE printing mosquito trajectory -- \n";
 };
 
 
@@ -69,6 +68,7 @@ mosquito::~mosquito(){
 
 mosquito_pop_uptr make_mosypop(
   const int SV,
+  const int EV,
   const int IV,
   const Rcpp::NumericVector& parameters
 ){
@@ -80,10 +80,13 @@ mosquito_pop_uptr make_mosypop(
   mpop->lambda = parameters["lambda"];
 
   int i;
-  for(i=0; i<SV; i++){
+  for (i=0; i<SV; i++) {
     mpop->pop.emplace_back(make_mosquito(mpop,0.,'S'));
   }
-  for(i=0; i<IV; i++){
+  for (i=0; i<EV; i++) {
+    mpop->pop.emplace_back(make_mosquito(mpop,0.,'E'));
+  }
+  for (i=0; i<IV; i++) {
     mpop->pop.emplace_back(make_mosquito(mpop,0.,'I'));
   }
 
@@ -119,6 +122,7 @@ void run_mosypop(mosquito_pop_uptr& mpop, const double t0, const double dt){
 
 Rcpp::NumericMatrix gethist_mosypop(
   const int SV,
+  const int EV,
   const int IV,
   mosquito_pop_uptr& mpop
 ){
@@ -145,7 +149,7 @@ Rcpp::NumericMatrix gethist_mosypop(
   int m_ix{0};
   mhist.at(m_ix,0) = 0.;
   mhist.at(m_ix,1) = SV;
-  mhist.at(m_ix,2) = 0.;
+  mhist.at(m_ix,2) = EV;
   mhist.at(m_ix,3) = IV;
   m_ix++;
 
@@ -170,9 +174,9 @@ Rcpp::NumericMatrix gethist_mosypop(
 
 mosquito_uptr make_mosquito(mosquito_pop_uptr& mpop, const double bday, const char state){
 
-  if(state == 'E'){
-    Rcpp::stop("invalid initial state given to 'make_mosquito'");
-  }
+  // if(state == 'E'){
+  //   Rcpp::stop("invalid initial state given to 'make_mosquito'");
+  // }
 
   mosquito_uptr mosy = std::make_unique<mosquito>();
 
@@ -261,7 +265,7 @@ void sim_mosquito_I(mosquito_uptr& mosy, const double t0, const double dt){
     mosy->snext = 'D';
     risk_t1 = mosy->tdie;
   } else {
-    mosy->tnext = tmax + epsilon;
+    mosy->tnext = tmax;
     mosy->snext = 'I';
     risk_t1 = tmax;
   }

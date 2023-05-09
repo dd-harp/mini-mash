@@ -83,11 +83,11 @@ using human_pop_uptr = std::unique_ptr<human_pop>;
 #   population functions
 -------------------------------------------------------------------------------- */
 
-human_pop_uptr make_humanpop(const int SH, const int IH, const Rcpp::NumericVector& parameters);
+human_pop_uptr make_humanpop(const int SH, const int EH, const int IH, const Rcpp::NumericVector& parameters);
 
 void run_humanpop(human_pop_uptr& hpop, const double t0, const double dt);
 
-Rcpp::NumericMatrix gethist_humanpop(const int SH, const int IH, human_pop_uptr& hpop);
+Rcpp::NumericMatrix gethist_humanpop(const int SH, const int EH, const int IH, human_pop_uptr& hpop);
 
 
 /* --------------------------------------------------------------------------------

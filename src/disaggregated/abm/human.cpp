@@ -16,21 +16,25 @@
 
 human_pop_uptr make_humanpop(
   const int SH,
+  const int EH,
   const int IH,
   const Rcpp::NumericVector& parameters
 ){
 
   human_pop_uptr hpop = std::make_unique<human_pop>();
 
-  hpop->N = SH + IH;
+  hpop->N = SH + EH + IH;
   hpop->r = parameters["r"];
   hpop->LEP = parameters["LEP"];
 
   int i;
-  for(i=0; i<SH; i++){
+  for (i=0; i<SH; i++) {
     hpop->pop.emplace_back(make_human(hpop,'S'));
   }
-  for(i=0; i<IH; i++){
+  for (i=0; i<EH; i++) {
+    hpop->pop.emplace_back(make_human(hpop,'E'));
+  }
+  for (i=0; i<IH; i++) {
     hpop->pop.emplace_back(make_human(hpop,'I'));
   }
 
@@ -53,6 +57,7 @@ void run_humanpop(
 
 Rcpp::NumericMatrix gethist_humanpop(
   const int SH,
+  const int EH,
   const int IH,
   human_pop_uptr& hpop
 ){
@@ -79,7 +84,7 @@ Rcpp::NumericMatrix gethist_humanpop(
   int h_ix{0};
   hhist.at(h_ix,0) = 0.;
   hhist.at(h_ix,1) = SH;
-  hhist.at(h_ix,2) = 0.;
+  hhist.at(h_ix,2) = EH;
   hhist.at(h_ix,3) = IH;
   h_ix++;
 
@@ -131,7 +136,7 @@ human_uptr make_human(human_pop_uptr& hpop, const char state){
 
   hh->pop = hpop.get();
 
-  if(state == 'S'){
+  if (state == 'S') {
 
     hh->I2S = std::nan("");
     hh->tnext = 0.;
@@ -139,7 +144,15 @@ human_uptr make_human(human_pop_uptr& hpop, const char state){
 
     hh->pop->hist.emplace_back(hist_elem{hh->tnow,1,0,0});
 
-  } else if(state == 'I'){
+  } else if (state == 'E') {
+    
+    hh->I2S = std::nan("");
+    hh->tnext = 0.;
+    hh->snext = state;
+    
+    hh->pop->hist.emplace_back(hist_elem{hh->tnow,0,1,0});
+  
+  } else if (state == 'I') {
 
     hh->I2S = R::rexp(1./hpop->r);
     hh->tnext = 0.;
@@ -167,7 +180,7 @@ void sim_human_S(human_uptr& hh, const double t0, const double dt){
   }
 
   // queue S2S (so that we can accumulate infection hazard on each step properly)
-  hh->tnext = tmax + epsilon;
+  hh->tnext = tmax;
   hh->snext = 'S';
 
 };
@@ -213,7 +226,7 @@ void sim_human_I(human_uptr& hh, const double t0, const double dt){
     hh->snext = 'S';
     risk_t1 = hh->I2S;
   } else {
-    hh->tnext = tmax + epsilon;
+    hh->tnext = tmax;
     hh->snext = 'I';
     risk_t1 = tmax;
   }
