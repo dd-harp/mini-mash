@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # disaggregated simulation algorithm
 
 Recall that the "big picture" algorithm look like this:
@@ -21,7 +26,7 @@ Consider the problem of starting with simulation of the mosquito population `sim
 
 Because there is no input of bites which would cause an $S\rightarrow E$ event, we can directly simulate the events in the system. 
 
-If $E_{V}$ is nonzero, we queue $E\rightarrow I$ events for each exposed mosquito, call the queue data structure which stores these events `E2I_mosquito`. This is done "before simulation starts". The time that each of these mosquitos will become infected is a realization of the random variable $Unif(-EIP,0)+EIP$. A draw is taken for each, and it is added to `E2I_mosquito`. Values are drawn from this random variable because if a mosquito was incubating at time $0$, it could not have become infected at a time less than $-EIP$, otherwise it would have been infectious at time $0$. Therefore, under the assumption that the model is (except for the deterministic delays), a set of coupled Poisson processes (because the infection time would have arisen from one), the actual infection time is uniformly distributed along the interval $(-EIP,0]$. Therefore the $E\rightarrow I$ transition will be that initial infection time plus $EIP$.
+If $E_{V}$ is nonzero, we queue $E\rightarrow I$ events for each exposed mosquito, call the queue data structure which stores these events `E2I_mosquito`. This is done "before simulation starts". The time that each of these mosquitos will become infected is a realization of the random variable $Unif(-\tau_{EIP},0)+\tau_{EIP}$. A draw is taken for each, and it is added to `E2I_mosquito`. Values are drawn from this random variable because if a mosquito was incubating at time $0$, it could not have become infected at a time less than $-\tau_{EIP}$, otherwise it would have been infectious at time $0$. Therefore, under the assumption that the model is (except for the deterministic delays), a set of coupled Poisson processes (because the infection time would have arisen from one), the actual infection time is uniformly distributed along the interval $(-\tau_{EIP},0]$. Therefore the $E\rightarrow I$ transition will be that initial infection time plus $\tau_{EIP}$.
 
 After this sampling of initial conditions, the mosquito population can be simulated along the time interval from $[t_{0},t_{0} + \Delta t)$. Henceforth let $t_{0} + \Delta t = t_{1}$, so that generally the $i^{th}$ iteration is denoted by its right open endpoint $t_{i}$. Deaths from each compartment occur at per-capita intensity $g$, so for example the Poisson process accounting for deaths from $S_{V}$ has intensity $g S_{v}$. Emergence is even simpler, as we assume it occurs with state-independent intensity $\lambda$. If the next event is an $E\rightarrow I$ transition, we must update slightly more carefully, by removing it from the head of the queue `E2I_mosquito` during the state update. If the event is a death from $E_{V}$, then a random element from `E2I_mosquito` is removed (note that the size of the queue is always equal to the value of $E_{V}$). The whole system can be simulated by Anderson's "modified next reaction method" (MNRM), a technique to simulate Markovian or non-Markovian continuous time discrete event stochastic systems. The mosquito state is simulated using the MNRM until the next event time would exceed $t_{1}$, the end of the TWICE interval. 
 
@@ -31,7 +36,7 @@ The mosquitos must also output the trajectory of $I_{V}$ over this interval, nee
 
 ## human simulation on first time step
 
-Because we do not model deaths or births in the human component, a description of the algorithm for `simulate_human_pop` is even simpler. Again, for non-zero $E_{H}$, we do a similar process as to the initial mosquito incubating individuals to sample the initial state. The difference is that the random variable which is sampled and added to `E2I_human` is now described by $Unif(-LEP,0)+LEP$, following the same argument.
+Because we do not model deaths or births in the human component, a description of the algorithm for `simulate_human_pop` is even simpler. Again, for non-zero $E_{H}$, we do a similar process as to the initial mosquito incubating individuals to sample the initial state. The difference is that the random variable which is sampled and added to `E2I_human` is now described by $Unif(-\tau_{LEP},0)+\tau_{LEP}$, following the same argument. On the first time step there are no queued infection events known to occur over this step, so the queue data structure `M2H_bloodmeal` is empty.
 
 The only Poisson process in the human model is that governing the $I\rightarrow S$ transition, firing at intensity $r I_{H}$. It competes with the deterministic events queued in `E2I_human`. The same update procedure based on the MNRM used for the mosquitos can be used to simulate the humans.
 
@@ -55,7 +60,7 @@ $$
 n_{i} \sim Binomial(\tilde{r}_{i},p_{i})
 $$
 
-Then the risk set (number of mosquitos still susceptible) at the end of the interval ($q_{1}$) is $r_{i} = \tilde{r}_{i} - n_{i}$. Due to the assumption of the model as a set of competing Poisson processes, each of the $n_{i}$ infection events occurs at a time uniformly distributed on the interval, that is $b_{i} \sim Unif(q_{0},q_{1}$$. Each of these bites must be added to the `H2M_bloodmeal` queue.
+Then the risk set (number of mosquitos still susceptible) at the end of the interval ($q_{1}$) is $r_{i} = \tilde{r}_{i} - n_{i}$. Due to the assumption of the model as a set of competing Poisson processes, each of the $n_{i}$ infection events occurs at a time uniformly distributed on the interval, that is $b_{i} \sim Unif(q_{0},q_{1}$. Each of these bites must be added to the `H2M_bloodmeal` queue.
 
 ### infection in mosquitos $S_{V}\rightarrow E_{V}$ on subsequent time steps
 
@@ -65,30 +70,7 @@ Let's see how this influences the size of the risk set. The size of the risk set
 
 Now that we know the putative risk set, we can again calculate the per-capita probability of infection $p_{i}$, and sample $n_{i}$.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### pseudocode
 
 We show the algorithm below in pseudocode. Let `s` equal $\tilde{S}_{V}$, which can be linearly indexed by interval.
 
@@ -103,9 +85,10 @@ while (i <= n)
   if s - s_prev == -1
     if rand() < r_prev/s_prev # death occured among susceptible
       rbar <- r_prev - 1
+      update_history(...) # reassign this death event to decrease the S_{V} population
     else
       rbar <- r_prev
-      update_history() # reassign this death event to decrease the E_{V} population
+      update_history(...) # reassign this death event to decrease the E_{V} population
     end
   else if s - s_prev == 1
     rbar <- r_prev + 1
@@ -119,8 +102,80 @@ while (i <= n)
     error("jumps larger than one are not allowed")
   end
   
+  p <- 1 - exp(-integrate(a*c*X(s),q[i-1],q[i]))
+  n <- rbinomial(rbar, p)
+  r <- rbar - n
+  
+  # sample actual infection times
+  for i in 1:n
+    btime <- runiform(q[i-1],q[i])
+    push!(H2M_bloodmeal, btime)
+  end
+  
   r_prev <- r
+  s_prev <- s
+  i <- i + 1
 end
 ```
 
 ### infection in humans $S_{H}\rightarrow E_{H}$
+
+The algorithm to compute the bloodmeal events in humans is considerably simpler, because in the simple model here demography in the human population is not modeled. Let us reuse the notation from the mosquito bloodmeal, except that $s$ now refers to the state trajectory of $\tilde{S}_{H}$.
+
+On the first interval ($i=1$) the risk set in humans is $\tilde{r}_{i} = s_{i}$. The per-capita probability of infection is equal to:
+
+$$
+p_{i} = 1 - \exp \left( -\int_{q_{0}}^{q_{1}} abI_{V}(s)/N ds \right)
+$$
+
+Then the number of infections in humans over this interval is again:
+
+$$
+n_{i} \sim Binomial(\tilde{r}_{i},p_{i})
+$$
+
+And the risk set at the end of this interval is $r_{i} = \tilde{r}_{i} - n_{i}$. Again, each biting time is distributed according to $Unif(q_{0},q_{1}$, and each bite time is added to the `M2H_bloodmeal` queue.
+
+On subsequent time steps, we know that the trajectory $\tilde{S}_{H}$ changes only when the risk set expands due to recoveries from $I_{H}$. Therefore we update $\tilde{r}_{i} = r_{i-1} + 1$ at each jump time. We can again go through the above procedure to simulate bites causing infection over that interval until entire interval has been simulated. We outline the algorithm in the below pseudocode:
+
+```
+s_prev <- s[1]
+r_prev <- 0
+i <- 1
+while (i <= n)
+
+  s <- s[i]
+  
+  if s - s_prev == 0
+    rbar <- s
+  else if s - s_prev == 1
+    rbar <- r_prev + 1
+  else
+    error("illegal jump detected")
+  end
+  
+  p <- 1 - exp(-integrate(a*b*IV(s)/N,q[i-1],q[i]))
+  n <- rbinomial(rbar, p)
+  r <- rbar - n
+  
+  # sample actual infection times
+  for i in 1:n
+    btime <- runiform(q[i-1],q[i])
+    push!(M2H_bloodmeal, btime)
+  end
+  
+  r_prev <- r
+  s_prev <- s
+  i <- i + 1
+end
+```
+
+## mosquito simulation on subsequent time steps
+
+Simulation of the mosquito population on TWICE steps after the first (i.e. on $[t_{0}+\Delta t, t_{0} + 2\Delta t)$ and onward) is exactly as the first except that now the `H2M_bloodmeal` queue is not empty, so before the previous simulation begins we must update the mosquito state with those infection events that occurred during the previous TWICE step.
+
+For each bite stored in the `H2M_bloodmeal` we must remove it, and queue an exposed to infectious transition in the `E2I_mosquito` queue at time $b_{i} + \tau_{EIP}$, and also increment the value of $E_{V}$ at $q_{i-1}$ by $+1$, and decrement $S_{V}$ at $q_{i-1}$ by $-1$. Note that at the end of this process the size of `E2I_mosquito` should equal $E_{V}$. After this simulation of demographic processes proceeds as before.
+
+## human simulation on subsequent time steps
+
+Simulation of the human population is similar to the mosquito situation, except bites are popped off `M2H_bloodmeal`, and added to `E2I_human` at times $b_{i} + \tau_{LEP}$. Simulation then proceeds as before.
